@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nlt-glass"
-version = "1.0.0"
+version = "1.1.0"
 description = "nlt-glass — the fish-first terminal window around the nlt brain. GTK3 + VTE; every tab is fish, the nlt chat sidecar is one keypress away; nlt itself is optional."
 readme = "README.md"
 requires-python = ">=3.9"

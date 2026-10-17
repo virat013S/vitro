@@ -7,6 +7,6 @@ ctrl-g rescue works because your fish integration is loaded as usual.
 nlt itself is optional: the glass works fine without it.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 APP = "nlt-glass"
 APP_ID = "io.github.virat013s.nlt_glass"

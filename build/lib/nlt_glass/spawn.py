@@ -42,3 +42,17 @@ def workdir_arg(dir_arg: str) -> str:
     if d and os.path.isdir(d):
         return d
     return os.path.expanduser("~")
+
+
+def uri_to_path(uri: str | None) -> str:
+    """file:// URI (vte current-directory-uri) → local path. '' when unknown."""
+    if not uri or not uri.startswith("file://"):
+        return ""
+    try:
+        from urllib.parse import unquote, urlparse
+        parsed = urlparse(uri)
+        if parsed.netloc and parsed.netloc not in ("", "localhost"):
+            return ""
+        return unquote(parsed.path)
+    except Exception:
+        return ""

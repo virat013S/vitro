@@ -1,135 +1,174 @@
-"""The Glass palette — every color nlt-glass paints with, plus its CSS.
+"""The Glass palette — colors + CSS for nlt-glass.
 
-Pure data: no GTK imports, so tests can read it anywhere.
+Pure data: no GTK imports, so tests can read it anywhere. CSS is generated
+per-window-opacity so transparency reaches the chrome as well as the cells.
 """
 from __future__ import annotations
 
-# name → 16 ANSI colors, dark-scheme first, glassy navy base
-GLASS = {
-    "background": "#161a24",
-    "foreground": "#d5dbea",
-    "cursor": "#9cc2ff",
-    "cursor_text": "#161a24",
-    "selection": "#3e6fb0",
-    "selection_text": "#ffffff",
-    "normal": [
-        "#2b3142",  # black
-        "#e56c7d",  # red
-        "#86d69b",  # green
-        "#efc97c",  # yellow
-        "#7fa8f7",  # blue
-        "#c298f5",  # magenta
-        "#79d6d3",  # cyan
-        "#c4cddf",  # white
-    ],
-    "bright": [
-        "#5a627a",
-        "#f491a0",
-        "#a4e3b0",
-        "#f7dfa9",
-        "#9cc2ff",
-        "#d9b6ff",
-        "#9be3e0",
-        "#edf1fa",
-    ],
+# name → 8 ANSI base + 8 bright colors, glassy navy base
+THEMES: dict[str, dict] = {
+    "glass": {
+        "background": "#161a24",
+        "foreground": "#d5dbea",
+        "cursor": "#9cc2ff",
+        "cursor_text": "#161a24",
+        "selection": "#3e6fb0",
+        "selection_text": "#ffffff",
+        "normal": [
+            "#2b3142", "#e56c7d", "#86d69b", "#efc97c",
+            "#7fa8f7", "#c298f5", "#79d6d3", "#c4cddf",
+        ],
+        "bright": [
+            "#5a627a", "#f491a0", "#a4e3b0", "#f7dfa9",
+            "#9cc2ff", "#d9b6ff", "#9be3e0", "#edf1fa",
+        ],
+    },
+    "graphite": {
+        "background": "#101014",
+        "foreground": "#d7d7dc",
+        "cursor": "#e8e8ee",
+        "cursor_text": "#101014",
+        "selection": "#51557a",
+        "selection_text": "#ffffff",
+        "normal": [
+            "#242430", "#e06b74", "#8fd39a", "#e3b95f",
+            "#82aaff", "#c39ee7", "#63d6d2", "#bfbfc9",
+        ],
+        "bright": [
+            "#4a4a5a", "#ff8f96", "#a8e5b2", "#eed79a",
+            "#a8c7ff", "#dcb6ff", "#8ce4e0", "#e8e8f0",
+        ],
+    },
 }
-
-# chrome tones (not terminal colors): window, chrome, text, border
-CHROME_BG = "#12141c"
-CHROME_FG = "#d6dbe8"
-CHROME_DIM = "#8b93a7"
-CHROME_BORDER = "#2a3040"
-
-GLASS_CSS = f"""
-window {{
-    background: {CHROME_BG};
-}}
-headerbar {{
-    background: {CHROME_BG};
-    color: {CHROME_FG};
-    border-bottom: none;
-    box-shadow: none;
-}}
-headerbar:backdrop {{
-    background: #0e1017;
-    color: {CHROME_DIM};
-}}
-headerbar button {{
-    background: transparent;
-    color: {CHROME_FG};
-    border: none;
-    padding: 3px 9px;
-    border-radius: 8px;
-}}
-headerbar button:hover {{
-    background: #232838;
-}}
-headerbar button:checked {{
-    background: #232838;
-    color: {CHROME_FG};
-}}
-notebook > header {{
-    background: {CHROME_BG};
-    border: none;
-    box-shadow: none;
-}}
-notebook > header > tabs > tab {{
-    background: transparent;
-    padding: 3px 4px;
-    color: {CHROME_DIM};
-    border-bottom: 2px solid transparent;
-    min-height: 20px;
-}}
-notebook > header > tabs > tab:checked {{
-    color: {CHROME_FG};
-    border-bottom: 2px solid #7fa8f7;
-}}
-notebook stack {{
-    background: {GLASS['background']};
-}}
-terminal {{
-    padding: 12px 14px;
-}}
-.nlt-side {{
-    background: {CHROME_BG};
-    border-top: 1px solid {CHROME_BORDER};
-}}
-.nlt-side-label {{
-    color: {CHROME_DIM};
-    padding: 4px 14px 0 14px;
-    font-size: 88%;
-}}
-scrollbar {{
-    background: transparent;
-    border: none;
-}}
-scrollbar slider {{
-    background: #3a4157;
-    border-radius: 4px;
-    min-width: 6px;
-}}
-scrollbar slider:hover {{
-    background: #4c5471;
-}}
-"""
+CHROME = {
+    "glass": {"bg": "#12141c", "dim": "#8b93a7", "fg": "#d6dbe8", "accent": "#7fa8f7"},
+    "graphite": {"bg": "#0c0c10", "dim": "#7a7a86", "fg": "#d7d7dc", "accent": "#a8c7ff"},
+}
+DEFAULT_THEME = "glass"
 
 
-def palette_rgba(values: list[str]) -> list[str]:
-    """Validate a hex list — raises ValueError on junk. Returns lowercase list."""
-    out = []
-    for v in values:
-        out.append(rgba_hex(v))
-    return out
+def theme_names() -> list[str]:
+    return sorted(THEMES)
 
 
 def rgba_hex(value: str) -> str:
-    """'#aabbcc' or '#ABC' → '#aabbcc'. ValueError otherwise."""
+    """'#AABBCC' or '#ABC' → '#aabbcc'. ValueError otherwise."""
     s = value.strip().lstrip("#")
     if len(s) == 3:
         s = "".join(c * 2 for c in s)
     if len(s) != 6 or any(c not in "0123456789abcdefABCDEF" for c in s):
         raise ValueError(f"not a hex color: {value!r}")
     return "#" + s.lower()
+
+
+def hex_rgba_tuple(value: str, alpha: float = 1.0) -> str:
+    """Hex → CSS `rgba(r,g,b,a)` string (for the chrome/transparency)."""
+    s = rgba_hex(value)[1:]
+    r, g, b = (int(s[i:i + 2], 16) for i in (0, 2, 4))
+    return f"rgba({r}, {g}, {b}, {max(0.0, min(1.0, alpha)):g})"
+
+
+def palette_rgba(values: list[str]) -> list[str]:
+    """Validate a hex list — raises ValueError on junk. Lowercase list back."""
+    return [rgba_hex(v) for v in values]
+
+
+def glass_css(theme: str = DEFAULT_THEME, opacity: float = 1.0) -> str:
+    """Full stylesheet, chrome alpha = opacity (blur-friendly on wayland)."""
+    t = THEMES[theme]
+    c = CHROME[theme]
+    bg_alpha = hex_rgba_tuple(c["bg"], opacity)
+    bg_back = hex_rgba_tuple("#0e1017" if theme == "glass" else "#08080b", opacity)
+    stack = hex_rgba_tuple(t["background"], opacity)
+    return f"""
+window {{
+    background: {bg_alpha};
+}}
+headerbar {{
+    background: {bg_alpha};
+    color: {c['fg']};
+    border-bottom: none;
+    box-shadow: none;
+}}
+headerbar:backdrop {{
+    background: {bg_back};
+    color: {c['dim']};
+}}
+headerbar button {{
+    background: transparent;
+    color: {c['fg']};
+    border: none;
+    padding: 3px 9px;
+    border-radius: 8px;
+}}
+headerbar button:hover {{
+    background: {hex_rgba_tuple(c['bg'], opacity * 1.9)};
+}}
+headerbar button:checked, headerbar button.suggested-action {{
+    background: {hex_rgba_tuple(c['bg'], opacity * 1.9)};
+    color: {c['fg']};
+}}
+notebook > header {{
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}}
+notebook > header > tabs > tab {{
+    background: transparent;
+    padding: 3px 5px;
+    margin: 2px 1px;
+    color: {c['dim']};
+    border-radius: 7px;
+}}
+notebook > header > tabs > tab:hover {{
+    background: {hex_rgba_tuple(c['bg'], opacity * 1.6)};
+    color: {c['fg']};
+}}
+notebook > header > tabs > tab:checked {{
+    background: {hex_rgba_tuple(c['bg'], opacity * 2.2)};
+    color: {c['fg']};
+    border-bottom: 2px solid {c['accent']};
+}}
+notebook > header > tabs > tab button {{
+    min-height: 16px;
+    min-width: 16px;
+    padding: 0;
+    margin: 0 0 0 2px;
+}}
+notebook stack {{
+    background: {stack};
+}}
+terminal {{
+    padding: 12px 14px;
+}}
+.nlt-side {{
+    background: {bg_alpha};
+    border-top: 1px solid {hex_rgba_tuple(c['bg'], min(1.0, opacity + 0.2))};
+}}
+.nlt-side-label {{
+    color: {c['dim']};
+    padding: 4px 14px 0 14px;
+    font-size: 88%;
+}}
+.nlt-side button {{
+    background: transparent;
+    color: {c['fg']};
+    border: none;
+}}
+scrollbar {{
+    background: transparent;
+    border: none;
+    min-width: 8px;
+}}
+scrollbar slider {{
+    background: {hex_rgba_tuple('#3a4157' if theme == 'glass' else '#2a2a36', 0.85)};
+    border-radius: 4px;
+    min-width: 6px;
+}}
+scrollbar slider:hover {{
+    background: {hex_rgba_tuple('#4c5471' if theme == 'glass' else '#3d3d4e', 0.95)};
+}}
+"""
 
 
 def pick_font() -> str:

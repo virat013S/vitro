@@ -17,6 +17,11 @@ def parse(argv: list[str] | None) -> argparse.Namespace:
                    help="shell to run in tabs (fish by default; falls back to $SHELL/bash)")
     p.add_argument("--dir", default="",
                    help="working directory for the first tab")
+    p.add_argument("--opacity", default="1.0", type=float,
+                   help="background transparency, 0.15-1.0 (default: 1.0 — "
+                        "Ctrl+Shift+[ / ] adjusts live). Needs a compositor.")
+    p.add_argument("--theme", default="glass", choices=("glass", "graphite"),
+                   help="color theme (default: glass)")
     p.add_argument("--no-nlt", action="store_true",
                    help="hide the nlt sidecar entirely (plain terminal mode)")
     p.add_argument("-V", "--version", action="version",

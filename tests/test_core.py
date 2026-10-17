@@ -12,14 +12,14 @@ import pytest
 
 from nlt_glass import APP, APP_ID, __version__
 from nlt_glass import cli
-from nlt_glass.palette import GLASS, GLASS_CSS, pick_font, rgba_hex
-from nlt_glass.spawn import shell_argv, sidecar_argv, workdir_arg
+from nlt_glass.palette import pick_font, rgba_hex
+from nlt_glass.spawn import shell_argv, sidecar_argv, uri_to_path, workdir_arg
 
 
 # -------------------------------------------------------------------- meta
 
 def test_meta():
-    assert __version__ == "1.0.0"
+    assert __version__ == "1.1.0"
     assert APP == "nlt-glass"
     assert APP_ID.replace("io.github.virat013s.", "") == "nlt_glass"
 
@@ -38,13 +38,44 @@ def test_parse_options():
     assert a.no_nlt is True
 
 
+def test_parse_opacity_and_theme():
+    a = cli.parse(["--opacity", "0.7", "--theme", "graphite"])
+    assert a.opacity == pytest.approx(0.7)
+    assert a.theme == "graphite"
+    b = cli.parse([])
+    assert b.opacity == pytest.approx(1.0)
+    assert b.theme == "glass"
+    with pytest.raises(SystemExit):
+        cli.parse(["--theme", "nope"])
+
+
 # ------------------------------------------------------------------ palette
 
-def test_glass_palette_complete():
-    assert len(GLASS["normal"]) == 8
-    assert len(GLASS["bright"]) == 8
-    assert GLASS["normal"] == [rgba_hex(v) for v in GLASS["normal"]]
-    assert GLASS["bright"] == [rgba_hex(v) for v in GLASS["bright"]]
+def test_themes_complete():
+    from nlt_glass.palette import (CHROME, THEMES, glass_css, hex_rgba_tuple,
+                                   theme_names)
+    assert theme_names() == ["glass", "graphite"]
+    for name in theme_names():
+        pal = THEMES[name]
+        assert len(pal["normal"]) == 8 and len(pal["bright"]) == 8
+        assert pal["normal"] == [rgba_hex(v) for v in pal["normal"]]
+        assert pal["bright"] == [rgba_hex(v) for v in pal["bright"]]
+        assert name in CHROME
+    for theme in theme_names():
+        css = glass_css(theme, 1.0)
+        chrome_bg = CHROME[theme]["bg"]
+        assert hex_rgba_tuple(chrome_bg, 1.0) in css
+    css70 = glass_css("glass", 0.7)
+    assert "rgba(18, 20, 28, 0.7)" in css70
+    with pytest.raises(KeyError):
+        glass_css("nope")  # type: ignore[arg-type]
+
+
+def test_hex_to_rgba_tuple():
+    from nlt_glass.palette import hex_rgba_tuple
+    assert hex_rgba_tuple("#12141C", 1.0) == "rgba(18, 20, 28, 1)"
+    assert hex_rgba_tuple("#12141c", 0.7) == "rgba(18, 20, 28, 0.7)"
+    assert hex_rgba_tuple("#abc", 0) == "rgba(170, 187, 204, 0)"
 
 
 def test_rgba_hex():
@@ -54,11 +85,6 @@ def test_rgba_hex():
         rgba_hex("nope")
     with pytest.raises(ValueError):
         rgba_hex("#GGHHII")
-
-
-def test_css_carries_the_look():
-    assert "padding: 12px 14px;" in GLASS_CSS
-    assert GLASS["background"] in GLASS_CSS  # window + stack backgrounds
 
 
 def test_pick_font_fallback(monkeypatch):
@@ -106,6 +132,14 @@ def test_sidecar_argv_shape():
     if argv is not None:
         assert argv[1] == "chat"
         assert os.path.isabs(argv[0])
+
+
+def test_uri_to_path():
+    assert uri_to_path("file:///home/mitsuki/Lezy%20OS") == "/home/mitsuki/Lezy OS"
+    assert uri_to_path("file://localhost/tmp") == "/tmp"
+    assert uri_to_path("http://example.com/x") == ""
+    assert uri_to_path("") == ""
+    assert uri_to_path(None) == ""
 
 
 def test_workdir_arg():
