@@ -48,11 +48,13 @@ ourfetch set-image cat.png  # your image becomes the logo (png; jpg via Pillow)
 ourfetch clear-image        # back to the automatic OS logo
 ```
 
-No image set? It draws the **real fastfetch logo** for your OS (taken
-straight from fastfetch's collection — Arch's `/`, CachyOS's chad-shard,
-colored in each distro's brand tones); anything unknown gets vitro's own
-glass shard. Your image lives at `~/.config/vitro/image.png`, remembered
-in `fetch.json`.
+No image set? It draws the **real fastfetch logo** for your OS — the whole
+fastfetch collection is inside (Arch's `/`, the CachyOS chad-shard, Ubuntu,
+Debian, Fedora, Manjaro, Mint, EndeavourOS, Pop!_OS, NixOS, Gentoo,
+openSUSE, Garuda, Artix, Kali, Alpine, Void, elementary, generic Linux,
+FreeBSD — plus **macOS and Windows**), colored in each distro's own brand
+tones; anything unknown gets vitro's own glass shard. Your image lives at
+`~/.config/vitro/image.png`, remembered in `fetch.json`.
 
 ## Settings
 

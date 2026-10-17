@@ -19,7 +19,7 @@ from vitro.spawn import shell_argv, sidecar_argv, uri_to_path, workdir_arg
 # -------------------------------------------------------------------- meta
 
 def test_meta():
-    assert __version__ == "1.6.0"
+    assert __version__ == "1.7.0"
 
 
 def test_cli_command_flag():
@@ -295,16 +295,32 @@ def test_fetch_png_decode_and_ansi(tmp_path):
 
 def test_fetch_logo_and_compose():
     from vitro import fetch
-    for os_id, want in (("arch", 19), ("cachyos", 22),
+    for os_id, want in (("arch", 19), ("cachyos", 22), ("ubuntu", 20),
+                        ("nixos", 20), ("macos", 17), ("windows", 16),
+                        ("linuxmint", 19), ("void", 18),
                         ("definitely-not-an-os", 7)):
         art = fetch.logo_for(os_id)
         assert len(art) == want and all("\x1b[" in line for line in art)
+    for key in fetch.LOGOS:                 # every logo renders colored
+        assert all("\x1b[" in ln and ln.strip() for ln in fetch.logo_for(key)), key
     assert fetch.brand_color("cachyos") == (76, 195, 189)
+    assert fetch.brand_color("opensuse-tumbleweed") == (0, 205, 0)
+    assert fetch.brand_color("macos") == (229, 229, 229)
     info = fetch.info_lines([("os", "Test OS"), ("kernel", "6.9")], True,
                             (76, 195, 189))
     assert len(info) == 2 and "Test OS" in info[0]
     line = fetch.compose(art, info, fetch.colors_line(True), True)
     assert line.count("\x1b[0m") >= 2 and line.endswith("\x1b[0m\n")
+
+
+def test_fetch_os_id_fallback(monkeypatch):
+    from vitro import fetch
+    monkeypatch.setattr(fetch, "_os_release", lambda: {})
+    monkeypatch.setattr(fetch.platform, "system", lambda: "Darwin")
+    assert fetch.os_id() == "macos"
+    monkeypatch.setattr(fetch.platform, "system", lambda: "Windows")
+    assert fetch.os_id() == "windows"
+    assert fetch.logo_for("windows")                # both have real art
 
 
 def test_fetch_gather_shape():
