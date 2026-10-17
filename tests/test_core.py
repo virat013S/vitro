@@ -19,7 +19,7 @@ from vitro.spawn import shell_argv, sidecar_argv, uri_to_path, workdir_arg
 # -------------------------------------------------------------------- meta
 
 def test_meta():
-    assert __version__ == "1.3.0"
+    assert __version__ == "1.4.0"
     assert APP == "vitro"
     assert APP_ID.replace("io.github.virat013s.", "") == "vitro"
 

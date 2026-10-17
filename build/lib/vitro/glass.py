@@ -140,6 +140,12 @@ def run(args) -> int:
     family = m.group(1) if m else base_font
     size0 = float(m.group(2)) if m else 11.0
     try:
+        size_set = float(s.get("font_size") or 0)
+    except (TypeError, ValueError):
+        size_set = 0.0
+    if size_set > 0:
+        size0 = size_set          # font_size setting overrides the font string
+    try:
         scrollback = int(s.get("scrollback", SCROLLBACK))
     except (TypeError, ValueError):
         scrollback = SCROLLBACK
@@ -153,7 +159,7 @@ def run(args) -> int:
              "side_vte": None, "side_spawned": False, "pane": None,
              "theme": theme, "tabs": tabs, "scrollback": scrollback,
              "fetch_pending": fetch_available() and bool(s.get("fetch", True)),
-             "op_btn": None}
+             "op_btn": None, "fs_btn": None}
 
     # ------------------------------------------------------------ fonts
     def font_desc():
@@ -165,6 +171,9 @@ def run(args) -> int:
                 pane["term"].set_font(font_desc())
         if state["side_vte"] is not None:
             state["side_vte"].set_font(font_desc())
+        btn = state.get("fs_btn")
+        if btn is not None:
+            btn.set_label(f"{state['size']:g}")
 
     # ------------------------------------------------------------- lookup
     def cur_tab() -> dict | None:
@@ -467,14 +476,21 @@ def run(args) -> int:
 
     def shift_opacity(delta: float) -> bool:
         apply_opacity(state["opacity"] + delta)
+        save_knobs()
         return True
 
     def on_opacity_adj(adj) -> None:
         apply_opacity(float(adj.get_value()))
 
-    def save_opacity(_pop=None) -> None:
+    def on_font_adj(adj) -> None:
+        state["size"] = float(adj.get_value())
+        apply_font()
+
+    def save_knobs(_pop=None) -> None:
+        """Persist the two live knobs (opacity, font size) to settings.json."""
         merged = dict(s)
         merged["opacity"] = round(state["opacity"], 2)
+        merged["font_size"] = round(float(state["size"]), 2)
         cfg.save(cfg.clean(merged))
 
     # -------------------------------------------------------------- keyboard
@@ -484,51 +500,58 @@ def run(args) -> int:
         shift = bool(ev.state & Gdk.ModifierType.SHIFT_MASK)
         alt = bool(ev.state & Gdk.ModifierType.MOD1_MASK)
         pane = cur_pane()
+        low = name.lower()
         eat = False
-        if ctrl and shift:
-            low = name.lower()
-            if low == "t":
-                new_tab()
+        if ctrl and not alt:
+            if shift:
+                if low == "t":
+                    new_tab()
+                    eat = True
+                elif low == "w":
+                    close_tab()
+                    eat = True
+                elif low == "g":
+                    toggle_sidecar()
+                    eat = True
+                elif low == "e":
+                    split(Gtk.Orientation.HORIZONTAL)
+                    eat = True
+                elif low == "o":
+                    split(Gtk.Orientation.VERTICAL)
+                    eat = True
+                elif low in ("bracketleft", "braceleft"):
+                    eat = shift_opacity(-OPACITY_STEP)
+                elif low in ("bracketright", "braceright"):
+                    eat = shift_opacity(OPACITY_STEP)
+                elif low == "c" and pane:
+                    pane["term"].copy_clipboard()
+                    eat = True
+                elif low == "v" and pane:
+                    pane["term"].paste_clipboard()
+                    eat = True
+            else:
+                if name == "Page_Up":
+                    eat = switch(-1)
+                elif name == "Page_Down":
+                    eat = switch(1)
+            # font keys work with OR without shift — with shift, GTK reports
+            # the shifted symbol: ctrl+shift+- is "underscore", +0 is
+            # "parenright", += is "plus". This bit us in 1.3.
+            if not eat and low in ("equal", "plus", "kp_add"):
+                state["size"] = min(31.0, state["size"] + 0.5)
+                apply_font()
+                save_knobs()
                 eat = True
-            elif low == "w":
-                close_tab()
+            elif not eat and low in ("minus", "underscore", "kp_subtract"):
+                state["size"] = max(6.0, state["size"] - 0.5)
+                apply_font()
+                save_knobs()
                 eat = True
-            elif low == "g":
-                toggle_sidecar()
-                eat = True
-            elif low == "e":
-                split(Gtk.Orientation.HORIZONTAL)
-                eat = True
-            elif low == "o":
-                split(Gtk.Orientation.VERTICAL)
-                eat = True
-            elif low == "bracketleft":
-                eat = shift_opacity(-OPACITY_STEP)
-            elif low == "bracketright":
-                eat = shift_opacity(OPACITY_STEP)
-            elif low == "0":
+            elif not eat and low in ("0", "parenright"):
                 state["size"] = size0
                 apply_font()
+                save_knobs()
                 eat = True
-            elif low == "c" and pane:
-                pane["term"].copy_clipboard()
-                eat = True
-            elif low == "v" and pane:
-                pane["term"].paste_clipboard()
-                eat = True
-            elif low in ("equal", "plus", "kp_add"):
-                state["size"] = min(31.0, state["size"] + 1)
-                apply_font()
-                eat = True
-            elif low in ("minus", "kp_subtract"):
-                state["size"] = max(6.0, state["size"] - 1)
-                apply_font()
-                eat = True
-        elif ctrl and not shift and not alt:
-            if name == "Page_Up":
-                eat = switch(-1)
-            elif name == "Page_Down":
-                eat = switch(1)
         elif alt and not ctrl and not shift:
             if name in tuple("123456789"):
                 eat = jump(int(name) - 1)
@@ -602,9 +625,33 @@ def run(args) -> int:
         pop.add(pop_box)
         adj.connect("value-changed", on_opacity_adj)
         op_btn.connect("clicked", lambda _b: pop.show_all())
-        pop.connect("closed", save_opacity)
+        pop.connect("closed", save_knobs)
         hb.pack_end(op_btn)
         state["op_btn"] = op_btn
+
+        fs_btn = Gtk.Button(label=f"{state['size']:g}")
+        fs_btn.get_style_context().add_class("flat")
+        fs_btn.set_tooltip_text("font size bar — drag, saves on close "
+                                "(Ctrl+Shift+0 resets)")
+        fpop = Gtk.Popover(relative_to=fs_btn)
+        fpop.set_size_request(230, -1)
+        fbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6,
+                       border_width=10)
+        flbl = Gtk.Label(label="font size")
+        flbl.set_halign(Gtk.Align.START)
+        fadj = Gtk.Adjustment(value=state["size"], lower=6.0, upper=31.0,
+                              step_increment=0.5, page_increment=1.0)
+        fscale = Gtk.Scale.new(Gtk.Orientation.HORIZONTAL, fadj)
+        fscale.set_draw_value(True)
+        fscale.set_digits(1)
+        fbox.pack_start(flbl, False, False, 0)
+        fbox.pack_start(fscale, True, True, 0)
+        fpop.add(fbox)
+        fadj.connect("value-changed", on_font_adj)
+        fs_btn.connect("clicked", lambda _b: fpop.show_all())
+        fpop.connect("closed", save_knobs)
+        hb.pack_end(fs_btn)
+        state["fs_btn"] = fs_btn
 
         win.set_titlebar(hb)
 

@@ -15,8 +15,9 @@ your OS logo (or an image you pick).
 - **Kitty-dark glass**: quiet charcoal (`#131317`), pale cursor, dimmed
   accent — no neon, no noise. **Graphite** is darker still.
 - **Real transparency** — chrome *and* cells go see-through; pair with
-  Hyprland/KWin blur for actual frosted glass. Live **transparency bar** in
-  the header (`85%` button → drag), or `Ctrl+Shift+[` / `]`.
+  Hyprland/KWin blur for actual frosted glass. Live **transparency bar** and
+  **font-size bar** in the header (`88%` / `11` buttons → drag), or keys
+  `Ctrl+Shift+[` / `]` and `Ctrl+ +` / `-` / `0`.
 - Pill tabs with accent underline, hairline scrollbar, 12px breathing room.
 - Own app icon + desktop entry: `vitro install-desktop`.
 
@@ -69,6 +70,7 @@ vitro settings edit         # open it in $EDITOR
   "theme": "glass",
   "opacity": 0.88,
   "font": "",
+  "font_size": 0,
   "shell": "",
   "dir": "",
   "no_nlt": false,
@@ -79,6 +81,9 @@ vitro settings edit         # open it in $EDITOR
 ```
 
 - `opacity` — 0.15–1.0; frosted with compositor blur
+- `font_size` — 0 = follow the font string's size; any other value (e.g. 13.5)
+  wins. The two header bars (`88%`, `11`) drag-set both of these live and
+  save automatically when you close the bar
 - `fetch` — the ourfetch greeting in the first tab (turn off if it annoys you)
 - `font` / `shell` — empty strings mean auto-detect (JetBrainsMono/Iosevka…, fish)
 - `plugins` — which builtins run, disable any by removing it
@@ -121,7 +126,7 @@ A broken plugin is skipped with a stderr note — the terminal never dies.
 | Alt+1..9               | jump to tab N                               |
 | Ctrl+Shift+C / V       | copy / paste                                |
 | Ctrl+Shift+[ / ]       | less / more transparency                    |
-| Ctrl+Shift+ +/- / 0    | font bigger / smaller / reset               |
+| Ctrl+ + / - / 0        | font bigger / smaller / reset (shift works too) |
 
 Your regular fish/shell keys all pass through untouched.
 

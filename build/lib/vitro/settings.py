@@ -12,6 +12,7 @@ DEFAULTS = {
     "theme": "glass",            # glass | graphite
     "opacity": 1.0,              # 0.15 – 1.0; 0.8 + compositor blur = frosted
     "font": "",                  # "" → auto-detect (JetBrains/Iosevka…)
+    "font_size": 0,              # 0 → follow the font string; else pt size
     "shell": "",                 # "" → fish if present, else $SHELL/bash
     "dir": "",                   # working dir for the first tab
     "no_nlt": False,             # hide the nlt sidecar
