@@ -19,7 +19,7 @@ from vitro.spawn import shell_argv, sidecar_argv, uri_to_path, workdir_arg
 # -------------------------------------------------------------------- meta
 
 def test_meta():
-    assert __version__ == "1.8.1"
+    assert __version__ == "1.9.0"
 
 
 def test_fetch_flying_bar(monkeypatch):
