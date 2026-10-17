@@ -152,6 +152,23 @@ python3 -m pip install --user .
 vitro install-desktop                     # app icon + launcher entry
 ```
 
+### From Flathub (universal — works on every Linux distro)
+
+Once the Flathub review lands (see the packaging dir):
+
+```bash
+flatpak install flathub io.github.virat013s.vitro
+flatpak run io.github.virat013s.vitro
+```
+
+Build the Flatpak locally today from this repo:
+
+```bash
+flatpak-builder --user --force-clean --install --repo=repo build \
+    packaging/flatpak/io.github.virat013s.vitro.yml
+flatpak run io.github.virat013s.vitro
+```
+
 Run it:
 
 ```bash
