@@ -33,26 +33,55 @@ BLOCKS = [(220, 111, 120), (141, 207, 157), (226, 196, 130),
           (131, 170, 240), (196, 156, 240), (123, 212, 210),
           (168, 199, 255), (233, 237, 246)]
 
-DEFAULTS = {"image": "", "cols": 36, "anim": True, "speed": 2.0}
+DEFAULTS = {"image": "", "cols": 36, "anim": True, "speed": 2.0,
+            "line_delay": 12}
 
+# Logos straight from fastfetch's collection (tokens $1/$2/$3 → brand colors).
 LOGOS = {
     "arch": [
-        "      /\\      ",
-        "     /  \\     ",
-        "    /\\   \\    ",
-        "   /      \\   ",
-        "  /   ,,   \\  ",
-        " /   |  |  -\\ ",
-        "/_-''    ''-_\\",
+        r"                  -`",
+        r"                 .o+`",
+        r"                `ooo/",
+        r"               `+oooo:",
+        r"              `+oooooo:",
+        r"              -+oooooo+:",
+        r"            `/:-:++oooo+:",
+        r"           `/++++/+++++++:",
+        r"          `/++++++++++++++:",
+        r"         `/+++o$2oooooooo$1oooo/`",
+        r"        ./$2ooosssso++osssssso$1+`",
+        r"$2       .oossssso-````/ossssss+`",
+        r"      -osssssso.      :ssssssso.",
+        r"     :osssssss/        osssso+++.",
+        r"    /ossssssss/        +ssssooo/-",
+        r"  `/ossssso+/:-        -:/+osssso+-",
+        r" `+sso+:-`                 `.-/+oso:",
+        r"`++:.                           `-/+/",
+        r".`                                 `/",
     ],
     "cachyos": [
-        "    ▄▄▄▄▄▄▄▄▄   ",
-        "  ▄█▀▀▀▀▀▀▀▀▀█▄ ",
-        " ▐█▌         ▐█▌",
-        " ▐█▌            ",
-        " ▐█▌         ▐█▌",
-        "  ▀█▄▄▄▄▄▄▄▄▄█▀ ",
-        "    ▀▀▀▀▀▀▀▀▀   ",
+        r"           $3.$1-------------------------:",
+        r"          .$2+=$1========================.",
+        r"         :$2++$1===$2++===$1===============-       :$2++$1-",
+        r"        :$2*++$1====$2+++++==$1===========-        .==:",
+        r"       -$2*+++$1=====$2+***++=$1=========:",
+        r"      =$2*++++=$1=======------------:",
+        r"     =$2*+++++=$1====-                     $3...$1",
+        r"   .$2+*+++++$1=-===:                    .$2=+++=$1:",
+        r"  :$2++++$1=====-==:                     -***$2**$1+",
+        r" :$2++=$1=======-=.                      .=+**+$3.$1",
+        r".$2+$1==========-.                          $3.$1",
+        r" :$2+++++++$1====-                                $3.$1--==-$3.$1",
+        r"  :$2++$1==========.                             $3:$2+++++++$1$3:",
+        r"   $1.-===========.                            =*****+*+",
+        r"    $1.-===========:                           .+*****+:",
+        r"      $1-=======$2++++$1:::::::::::::::::::::::::-:  $3.$1---:",
+        r"       :======$2++++$1====$2+++******************=.",
+        r"        $1:=====$2+++$1==========$2++++++++++++++*-",
+        r"         $1.====$2++$1==============$2++++++++++*-",
+        r"          $1.===$2+$1==================$2+++++++:",
+        r"           $1.-=======================$2+++:",
+        r"             $3..........................",
     ],
     "generic": [
         "     ▄▄▀▀▄     ",
@@ -65,8 +94,14 @@ LOGOS = {
     ],
 }
 
+# $1 = body, $2 = detail/outline, $3 = pale highlight (per distro brand).
+TOKEN_COLORS = {
+    "arch": {"1": (36, 145, 210), "2": (137, 201, 242), "3": (150, 165, 200)},
+    "cachyos": {"1": (76, 195, 189), "2": (150, 224, 217), "3": (219, 244, 242)},
+}
 
-# --------------------------------------------------------------------- config
+
+# ------------------------------------------------------------------ config
 def config_dir() -> str:
     base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
     return os.path.join(base, "vitro")
@@ -447,14 +482,47 @@ def image_to_ansi(path: str, cols: int = 36,
 
 
 # ---------------------------------------------------------------------- logo
-def logo_for(os_id: str) -> list[str]:
-    """ASCII logo for the running OS — vitro's shard for unknowns."""
-    lines = LOGOS.get(os_id) or LOGOS["generic"]
-    base = {"arch": ACCENT, "cachyos": (104, 210, 200)}.get(os_id,
-                                                           (150, 165, 200))
+TOKEN_RE = re.compile(r"\$(\d)")
+
+
+def _token_colored(lines: list[str], colors: dict) -> list[str]:
+    """fastfetch token lines ($1/$2/$3) → truecolor lines."""
     out = []
-    n = len(lines)
-    for i, line in enumerate(lines):
+    for raw in lines:
+        buf: list[str] = []
+        cur = colors.get("1") or FG
+        last: tuple | None = None
+        segs = TOKEN_RE.split(raw)
+        for j, seg in enumerate(segs):
+            if j % 2 == 1:                 # capture: the token number
+                cur = colors.get(seg) or colors.get("1") or FG
+                continue
+            if not seg:
+                continue
+            if cur != last:
+                buf.append(f"\x1b[38;2;{cur[0]};{cur[1]};{cur[2]}m")
+                last = cur
+            buf.append(seg)
+        buf.append("\x1b[0m")
+        out.append("".join(buf))
+    return out
+
+
+def brand_color(os_id: str) -> tuple:
+    """Body color of the logo — labels dress in it too."""
+    return TOKEN_COLORS.get(os_id, {}).get("1", ACCENT)
+
+
+def logo_for(os_id: str) -> list[str]:
+    """The fastfetch logo for the running OS; vitro's shard for unknowns."""
+    raw = LOGOS.get(os_id) or LOGOS["generic"]
+    if any("$" in line for line in raw):
+        return _token_colored(raw, TOKEN_COLORS.get(os_id)
+                              or TOKEN_COLORS["arch"])
+    out = []
+    n = len(raw)
+    base = (150, 165, 200) if os_id not in LOGOS else ACCENT
+    for i, line in enumerate(raw):
         t = i / max(1, n - 1)          # fade logo base → foreground
         col = tuple(int(base[k] + (FG[k] - base[k]) * t) for k in range(3))
         out.append(f"\x1b[38;2;{col[0]};{col[1]};{col[2]}m{line}\x1b[0m")
@@ -469,14 +537,15 @@ def visible_len(s: str) -> int:
     return len(ANSI_RE.sub("", s))
 
 
-def info_lines(rows: list[tuple[str, str]], color: bool = True) -> list[str]:
+def info_lines(rows: list[tuple[str, str]], color: bool = True,
+               brand: tuple = ACCENT) -> list[str]:
     out = []
     width = max((len(label) for label, _ in rows), default=6)
     for label, value in rows:
         if not value:
             continue
         if color:
-            out.append(f"\x1b[1m\x1b[38;2;{ACCENT[0]};{ACCENT[1]};{ACCENT[2]}m"
+            out.append(f"\x1b[1m\x1b[38;2;{brand[0]};{brand[1]};{brand[2]}m"
                        f"{label.rjust(width)}\x1b[0m"
                        f"\x1b[38;2;{DIM[0]};{DIM[1]};{DIM[2]}m · \x1b[0m"
                        f"\x1b[38;2;{FG[0]};{FG[1]};{FG[2]}m{value}\x1b[0m")
@@ -510,25 +579,37 @@ def compose(art: list[str], info: list[str], colors: str,
 
 
 # ------------------------------------------------------------- typing effect
-def stream(text: str, speed_ms: float = 2.0, color: bool = True) -> None:
-    """Type text out fast; escape runs jump, visible chars tick."""
-    if not color or not sys.stdout.isatty():
+def stream(text: str, speed_ms: float = 2.0, color: bool = True,
+           art_rows: int = 0, line_ms: float = 12.0) -> None:
+    """The animation: the logo builds row by row, the info types itself.
+    Escape runs jump instantly; visible chars tick at speed_ms."""
+    lines = text.split("\n")
+    if not color or not sys.stdout.isatty() or speed_ms <= 0:
         sys.stdout.write(text)
         sys.stdout.flush()
         return
     delay = max(0.2, speed_ms) / 1000.0
+    line_wait = max(0.5, line_ms) / 1000.0
     try:
-        for part in ANSI_RE.split(text):
-            if not part:
-                continue
-            if part.startswith("\x1b"):
-                sys.stdout.write(part)
+        for i, line in enumerate(lines):
+            if i < art_rows:
+                sys.stdout.write(line + ("\n" if i < len(lines) - 1 else ""))
                 sys.stdout.flush()
+                time.sleep(line_wait)
             else:
-                for ch in part:
-                    sys.stdout.write(ch)
-                    sys.stdout.flush()
-                    time.sleep(delay)
+                for part in ANSI_RE.split(line):
+                    if not part:
+                        continue
+                    if part.startswith("\x1b"):
+                        sys.stdout.write(part)
+                    else:
+                        for ch in part:
+                            sys.stdout.write(ch)
+                            sys.stdout.flush()
+                            time.sleep(delay)
+                if i < len(lines) - 1:
+                    sys.stdout.write("\n")
+                sys.stdout.flush()
     except (BrokenPipeError, KeyboardInterrupt):
         pass
 
@@ -598,9 +679,11 @@ def main(argv: list[str] | None = None) -> int:
         art = logo_for(os_id())
 
     rows = gather()
-    text = compose(art, info_lines(rows, color), colors_line(color), color)
+    text = compose(art, info_lines(rows, color, brand_color(os_id())),
+                   colors_line(color), color)
     if animate:
-        stream(text, speed, color)
+        stream(text, speed, color, art_rows=len(art),
+               line_ms=float(cfg.get("line_delay", 12)))
     else:
         sys.stdout.write(text)
         sys.stdout.flush()

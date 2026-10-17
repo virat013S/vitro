@@ -19,7 +19,7 @@ from vitro.spawn import shell_argv, sidecar_argv, uri_to_path, workdir_arg
 # -------------------------------------------------------------------- meta
 
 def test_meta():
-    assert __version__ == "1.4.0"
+    assert __version__ == "1.5.0"
     assert APP == "vitro"
     assert APP_ID.replace("io.github.virat013s.", "") == "vitro"
 
@@ -287,10 +287,13 @@ def test_fetch_png_decode_and_ansi(tmp_path):
 
 def test_fetch_logo_and_compose():
     from vitro import fetch
-    for os_id in ("arch", "cachyos", "definitely-not-an-os"):
+    for os_id, want in (("arch", 19), ("cachyos", 22),
+                        ("definitely-not-an-os", 7)):
         art = fetch.logo_for(os_id)
-        assert len(art) == 7 and all("\x1b[" in line for line in art)
-    info = fetch.info_lines([("os", "Test OS"), ("kernel", "6.9")], True)
+        assert len(art) == want and all("\x1b[" in line for line in art)
+    assert fetch.brand_color("cachyos") == (76, 195, 189)
+    info = fetch.info_lines([("os", "Test OS"), ("kernel", "6.9")], True,
+                            (76, 195, 189))
     assert len(info) == 2 and "Test OS" in info[0]
     line = fetch.compose(art, info, fetch.colors_line(True), True)
     assert line.count("\x1b[0m") >= 2 and line.endswith("\x1b[0m\n")

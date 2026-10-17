@@ -48,9 +48,11 @@ ourfetch set-image cat.png  # your image becomes the logo (png; jpg via Pillow)
 ourfetch clear-image        # back to the automatic OS logo
 ```
 
-No image set? It reads `/etc/os-release` and draws the OS's mark (Arch's
-`/`, otherwise vitro's glass shard). Your image lives at
-`~/.config/vitro/image.png`, remembered in `fetch.json`.
+No image set? It draws the **real fastfetch logo** for your OS (taken
+straight from fastfetch's collection — Arch's `/`, CachyOS's chad-shard,
+colored in each distro's brand tones); anything unknown gets vitro's own
+glass shard. Your image lives at `~/.config/vitro/image.png`, remembered
+in `fetch.json`.
 
 ## Settings
 
