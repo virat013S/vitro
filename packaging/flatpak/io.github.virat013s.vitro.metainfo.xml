@@ -24,6 +24,12 @@
     works fine without it.</p>
   </description>
   <launchable type="desktop-id">io.github.virat013s.vitro.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/virat013S/vitro/main/docs/screenshot.png</image>
+      <caption>Vitro — fish-first terminal with ourfetch greeting and pill tabs</caption>
+    </screenshot>
+  </screenshots>
   <url type="homepage">https://github.com/virat013S/vitro</url>
   <url type="bugtracker">https://github.com/virat013S/vitro/issues</url>
   <metadata_license>MIT</metadata_license>
