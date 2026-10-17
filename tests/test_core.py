@@ -19,7 +19,15 @@ from vitro.spawn import shell_argv, sidecar_argv, uri_to_path, workdir_arg
 # -------------------------------------------------------------------- meta
 
 def test_meta():
-    assert __version__ == "1.5.0"
+    assert __version__ == "1.6.0"
+
+
+def test_cli_command_flag():
+    from vitro import cli
+    assert cli.parse(["-e", "htop"]).command == ["htop"]
+    assert cli.parse(["--command", "echo", "hi"]).command == ["echo", "hi"]
+    assert cli.parse(["--dir", "/tmp", "-e", "btop"]).command == ["btop"]
+    assert cli.parse([]).command == []
     assert APP == "vitro"
     assert APP_ID.replace("io.github.virat013s.", "") == "vitro"
 

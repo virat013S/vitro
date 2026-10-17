@@ -17,6 +17,9 @@ def parse(argv: list[str] | None) -> argparse.Namespace:
                    help="shell to run in tabs (fish by default; falls back to $SHELL/bash)")
     p.add_argument("--dir", default="",
                    help="working directory for the first tab")
+    p.add_argument("-e", "--command", nargs=argparse.REMAINDER, default=[],
+                   help="run a command in the tabs instead of the shell, e.g. "
+                        "'vitro -e htop' (keep it last on the line)")
     p.add_argument("--opacity", default=None, type=float,
                    help="background transparency, 0.15-1.0 (default: from "
                         "settings or 1.0 — Ctrl+Shift+[ / ] adjusts live)")

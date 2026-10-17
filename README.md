@@ -153,6 +153,8 @@ vitro --opacity 0.8         # flag overrides — frosted with compositor blur
 vitro --theme graphite      # darker, calmer
 vitro --dir ~/projects      # open somewhere specific
 vitro --shell zsh           # other shells keep working
+vitro -e htop               # run a command instead of the shell (any command)
+vitro -e python script.py   # keep -e last on the line
 vitro --font "Iosevka 12"
 vitro --no-nlt              # pure terminal mode
 ```

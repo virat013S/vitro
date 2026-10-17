@@ -223,7 +223,8 @@ def run(args) -> int:
         term.connect("child-exited", on_pane_exit, pane)
         term.connect("focus-in-event", on_pane_focus, pane)
         term.connect("window-title-changed", _pane_title, tab)
-        shell = shell_argv(args_shell)
+        user_cmd = [t for t in (getattr(args, "command", None) or []) if t]
+        shell = user_cmd or shell_argv(args_shell)
         if state.get("fetch_pending"):
             state["fetch_pending"] = False
             if shell and shell[0].endswith("fish"):

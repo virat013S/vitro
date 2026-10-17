@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: vitro
-Version: 1.5.0
+Version: 1.6.0
 Summary: vitro — a dark, fish-first GTK3+VTE terminal with a settings file, inbuilt plugins, real transparency, splits and the nlt chat sidecar (nlt optional).
 License: MIT
 Keywords: terminal,fish,gtk3,vte,nlt,shell,wayland,x11
@@ -168,6 +168,8 @@ vitro --opacity 0.8         # flag overrides — frosted with compositor blur
 vitro --theme graphite      # darker, calmer
 vitro --dir ~/projects      # open somewhere specific
 vitro --shell zsh           # other shells keep working
+vitro -e htop               # run a command instead of the shell (any command)
+vitro -e python script.py   # keep -e last on the line
 vitro --font "Iosevka 12"
 vitro --no-nlt              # pure terminal mode
 ```
