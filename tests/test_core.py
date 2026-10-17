@@ -83,9 +83,11 @@ def test_shell_argv_defaults_to_found_shell():
 
 
 def test_shell_argv_custom_classic():
-    assert shell_argv("/bin/sh") == ["/bin/sh"]
-    sh = shell_argv("bash")
-    assert sh and os.path.isabs(sh[0])
+    import sys
+    assert shell_argv(sys.executable) == [sys.executable]
+    sh = shell_argv("bash")  # exists on unix and the windows runner (git-bash)
+    if sh:
+        assert os.path.isabs(sh[0])
 
 
 def test_shell_argv_names_fish_as_login():
@@ -107,9 +109,12 @@ def test_sidecar_argv_shape():
 
 
 def test_workdir_arg():
-    assert workdir_arg("") == os.path.expanduser("~")
-    assert workdir_arg("/tmp") == "/tmp"
-    assert workdir_arg("/definitely/not/here") == os.path.expanduser("~")
+    import tempfile
+    home = os.path.expanduser("~")
+    real = tempfile.gettempdir()
+    assert workdir_arg("") == home
+    assert workdir_arg(real) == real
+    assert workdir_arg("/definitely/not/here") == home
 
 
 def test_gui_module_is_import_safe():
