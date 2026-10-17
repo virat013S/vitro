@@ -38,6 +38,11 @@
     <binary>ourfetch</binary>
   </provides>
   <releases>
+    <release version="1.8.1" date="2026-10-17">
+      <description><p>Flatpak packaging on Flathub: your real host shell (fish --login) runs in
+      every tab via the sandbox portal, the nlt sidecar reaches host nlt, and
+      native installs behave exactly as before.</p></description>
+    </release>
     <release version="1.8.0" date="2026-10-17">
       <description><p>The flying bar — own fetch introduction, cleaner header, sharper edges everywhere.</p></description>
     </release>

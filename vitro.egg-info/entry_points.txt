@@ -1,3 +1,0 @@
-[console_scripts]
-ourfetch = vitro.fetch:main
-vitro = vitro.cli:main

@@ -1,0 +1,13 @@
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# build / test litter
+.pytest_cache/
+*.egg-info/
+build/
+
+# distro packaging artifacts
+/.kickstart/
