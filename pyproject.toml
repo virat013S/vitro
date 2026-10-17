@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nlt-glass"
+version = "1.0.0"
+description = "nlt-glass — the fish-first terminal window around the nlt brain. GTK3 + VTE; every tab is fish, the nlt chat sidecar is one keypress away; nlt itself is optional."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["terminal", "fish", "gtk3", "vte", "nlt", "shell", "wayland", "x11"]
+classifiers = [
+    "Environment :: X11 Applications :: GTK",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Terminals :: Terminal Emulators/X Terminals",
+]
+
+[project.scripts]
+nlt-glass = "nlt_glass.cli:main"
+
+[tool.setuptools]
+packages = ["nlt_glass"]
