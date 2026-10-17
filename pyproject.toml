@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nlt-glass"
-version = "1.1.0"
-description = "nlt-glass — the fish-first terminal window around the nlt brain. GTK3 + VTE; every tab is fish, the nlt chat sidecar is one keypress away; nlt itself is optional."
+version = "1.2.0"
+description = "nlt-glass — a dark, fish-first GTK3+VTE terminal with a settings file, inbuilt plugins, real transparency, splits and the nlt chat sidecar (nlt optional)."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
@@ -21,4 +21,4 @@ classifiers = [
 nlt-glass = "nlt_glass.cli:main"
 
 [tool.setuptools]
-packages = ["nlt_glass"]
+packages = ["nlt_glass", "nlt_glass.plugins"]

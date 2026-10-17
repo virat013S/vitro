@@ -8,19 +8,19 @@ from __future__ import annotations
 # name → 8 ANSI base + 8 bright colors, glassy navy base
 THEMES: dict[str, dict] = {
     "glass": {
-        "background": "#161a24",
-        "foreground": "#d5dbea",
-        "cursor": "#9cc2ff",
-        "cursor_text": "#161a24",
-        "selection": "#3e6fb0",
+        "background": "#131317",
+        "foreground": "#d2d6de",
+        "cursor": "#dfe3ee",
+        "cursor_text": "#131317",
+        "selection": "#3a456a",
         "selection_text": "#ffffff",
         "normal": [
-            "#2b3142", "#e56c7d", "#86d69b", "#efc97c",
-            "#7fa8f7", "#c298f5", "#79d6d3", "#c4cddf",
+            "#2d3038", "#dc6f78", "#8dcf9d", "#e2c482",
+            "#83aaf0", "#c49cf0", "#7bd4d2", "#c6ccda",
         ],
         "bright": [
-            "#5a627a", "#f491a0", "#a4e3b0", "#f7dfa9",
-            "#9cc2ff", "#d9b6ff", "#9be3e0", "#edf1fa",
+            "#565c6c", "#f2939c", "#a8e2b3", "#f5dea9",
+            "#a5c4ff", "#dbb8fb", "#9fe3e1", "#e9edf6",
         ],
     },
     "graphite": {
@@ -41,7 +41,7 @@ THEMES: dict[str, dict] = {
     },
 }
 CHROME = {
-    "glass": {"bg": "#12141c", "dim": "#8b93a7", "fg": "#d6dbe8", "accent": "#7fa8f7"},
+    "glass": {"bg": "#0d0e12", "dim": "#767d8d", "fg": "#d2d6de", "accent": "#7195e8"},
     "graphite": {"bg": "#0c0c10", "dim": "#7a7a86", "fg": "#d7d7dc", "accent": "#a8c7ff"},
 }
 DEFAULT_THEME = "glass"
@@ -78,7 +78,7 @@ def glass_css(theme: str = DEFAULT_THEME, opacity: float = 1.0) -> str:
     t = THEMES[theme]
     c = CHROME[theme]
     bg_alpha = hex_rgba_tuple(c["bg"], opacity)
-    bg_back = hex_rgba_tuple("#0e1017" if theme == "glass" else "#08080b", opacity)
+    bg_back = hex_rgba_tuple("#090a0d" if theme == "glass" else "#08080b", opacity)
     stack = hex_rgba_tuple(t["background"], opacity)
     return f"""
 window {{
@@ -161,12 +161,12 @@ scrollbar {{
     min-width: 8px;
 }}
 scrollbar slider {{
-    background: {hex_rgba_tuple('#3a4157' if theme == 'glass' else '#2a2a36', 0.85)};
+    background: {hex_rgba_tuple('#33363f' if theme == 'glass' else '#2a2a36', 0.85)};
     border-radius: 4px;
     min-width: 6px;
 }}
 scrollbar slider:hover {{
-    background: {hex_rgba_tuple('#4c5471' if theme == 'glass' else '#3d3d4e', 0.95)};
+    background: {hex_rgba_tuple('#414551' if theme == 'glass' else '#3d3d4e', 0.95)};
 }}
 """
 

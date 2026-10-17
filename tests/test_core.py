@@ -19,7 +19,7 @@ from nlt_glass.spawn import shell_argv, sidecar_argv, uri_to_path, workdir_arg
 # -------------------------------------------------------------------- meta
 
 def test_meta():
-    assert __version__ == "1.1.0"
+    assert __version__ == "1.2.0"
     assert APP == "nlt-glass"
     assert APP_ID.replace("io.github.virat013s.", "") == "nlt_glass"
 
@@ -43,8 +43,8 @@ def test_parse_opacity_and_theme():
     assert a.opacity == pytest.approx(0.7)
     assert a.theme == "graphite"
     b = cli.parse([])
-    assert b.opacity == pytest.approx(1.0)
-    assert b.theme == "glass"
+    assert b.opacity is None       # unset → settings.json wins
+    assert b.theme is None
     with pytest.raises(SystemExit):
         cli.parse(["--theme", "nope"])
 
@@ -66,7 +66,7 @@ def test_themes_complete():
         chrome_bg = CHROME[theme]["bg"]
         assert hex_rgba_tuple(chrome_bg, 1.0) in css
     css70 = glass_css("glass", 0.7)
-    assert "rgba(18, 20, 28, 0.7)" in css70
+    assert hex_rgba_tuple(CHROME["glass"]["bg"], 0.7) in css70
     with pytest.raises(KeyError):
         glass_css("nope")  # type: ignore[arg-type]
 
@@ -149,6 +149,108 @@ def test_workdir_arg():
     assert workdir_arg("") == home
     assert workdir_arg(real) == real
     assert workdir_arg("/definitely/not/here") == home
+
+
+def test_settings_roundtrip(monkeypatch, tmp_path):
+    from nlt_glass import settings as cfg
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    s = cfg.load()
+    assert s == dict(cfg.DEFAULTS)          # no file → coded defaults
+    assert cfg.config_path().endswith("settings.json")
+
+    s["opacity"] = 0.75
+    s["plugins"] = ["clock"]
+    assert cfg.save(s) is True
+    assert cfg.load()["opacity"] == 0.75
+    assert cfg.load()["plugins"] == ["clock"]
+
+    # broken file never wins / never wedges
+    (tmp_path / "nlt-glass" / "settings.json").write_text(
+        "{ not json at all", encoding="utf-8")
+    assert cfg.load() == dict(cfg.DEFAULTS)
+
+
+def test_settings_merge_precedence():
+    from argparse import Namespace
+
+    from nlt_glass import settings as cfg
+
+    ns = Namespace(font="", shell="zsh", dir="", theme=None,
+                   opacity=None, no_nlt=False)
+    merged = cfg.merge_onto(ns, {"font": "Mono 10", "opacity": 0.5,
+                                 "theme": "graphite", "no_nlt": True})
+    assert merged["font"] == "Mono 10"      # file value, flag unset
+    assert merged["shell"] == "zsh"         # flag value wins
+    assert merged["opacity"] == 0.5
+    assert merged["theme"] == "graphite"
+    assert merged["no_nlt"] is True
+
+    ns2 = Namespace(font="", shell="", dir="", theme="glass",
+                    opacity=1.0, no_nlt=True)
+    merged2 = cfg.merge_onto(ns2, {"theme": "graphite", "opacity": 0.5})
+    assert merged2["theme"] == "glass"      # explicit CLI beats file
+    assert merged2["opacity"] == 1.0
+    assert merged2["no_nlt"] is True        # either source sticks
+
+
+def test_builtin_plugins_importable():
+    import importlib
+
+    for name in ("clock", "cheats", "theme", "sysinfo"):
+        mod = importlib.import_module(f"nlt_glass.plugins.{name}")
+        assert callable(mod.register)
+
+
+def test_plugin_loader_user_files_and_fails_soft(monkeypatch, capsys, tmp_path):
+    from types import SimpleNamespace
+
+    from nlt_glass.bridge import GlassContext, load_plugins
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    plugdir = tmp_path / "nlt-glass" / "plugins"
+    plugdir.mkdir(parents=True)
+    (plugdir / "marker.py").write_text(
+        "def register(ctx):\n"
+        "    ctx.state['marker'] = True\n"
+        "    ctx.status('t', 'on')\n", encoding="utf-8")
+    (plugdir / "bare.py").write_text("X = 1\n", encoding="utf-8")
+
+    ctx = GlassContext(SimpleNamespace(), SimpleNamespace(), SimpleNamespace(),
+                       {"subtitle_extra": None}, {}, None)
+    live = load_plugins(["marker", "bare", "no_such_plugin_xyz"], ctx)
+    assert live == ["marker"]               # bare has no register; unknown skipped
+    assert ctx.state["marker"] is True
+    err = capsys.readouterr().err
+    assert "no register(ctx)" in err
+    assert "no_such_plugin_xyz" in err
+
+    # zero-config auto-load: fresh ctx, no names — marker runs again
+    ctx2 = GlassContext(SimpleNamespace(), SimpleNamespace(), SimpleNamespace(),
+                        {"subtitle_extra": None}, {}, None)
+    live2 = load_plugins([], ctx2)
+    assert live2 == ["marker"]
+
+
+def test_context_status_slots():
+    from types import SimpleNamespace
+
+    from nlt_glass.bridge import GlassContext
+
+    seen: dict = {}
+
+    def set_text(t: str) -> None:
+        seen["t"] = t
+
+    extra = SimpleNamespace(set_text=set_text)
+    ctx = GlassContext(SimpleNamespace(), SimpleNamespace(), SimpleNamespace(),
+                       {"subtitle_extra": extra}, {}, None)
+    ctx.status("clock", "13:37")
+    assert seen["t"] == "13:37"
+    ctx.status("sysinfo", "λ 0.4")
+    assert seen["t"] == "13:37  ·  λ 0.4"    # joined, sorted
+    ctx.status("clock", "")
+    assert seen["t"] == "λ 0.4"
 
 
 def test_gui_module_is_import_safe():

@@ -32,6 +32,8 @@ except (ImportError, ValueError, TypeError) as _e:  # bindings or runtime missin
     LOAD_ERROR = _e
 
 from . import APP, APP_ID, __version__
+from . import bridge
+from . import settings as cfg
 from .palette import DEFAULT_THEME, THEMES, glass_css, pick_font, rgba_hex
 from .spawn import shell_argv, sidecar_argv, uri_to_path, workdir_arg
 
@@ -120,25 +122,33 @@ def run(args) -> int:
         print("  windows: nlt-glass lives on Linux — use WSL/WSLg")
         return 77
 
-    args_shell = getattr(args, "shell", "") or ""
-    cwd = workdir_arg(getattr(args, "dir", ""))
-    no_nlt = bool(getattr(args, "no_nlt", False))
-    theme = getattr(args, "theme", "") or DEFAULT_THEME
+    # precedence: CLI flags > settings.json > coded defaults
+    s = cfg.merge_onto(args, cfg.load())
+    args_shell = str(s.get("shell") or "")
+    cwd = workdir_arg(str(s.get("dir") or ""))
+    no_nlt = bool(s.get("no_nlt", False))
+    theme = str(s.get("theme") or DEFAULT_THEME)
     if theme not in THEMES:
         print(f"{APP}: unknown theme {theme!r} — using {DEFAULT_THEME}")
         theme = DEFAULT_THEME
-    opacity = _clamp_f(getattr(args, "opacity", 1.0), OPACITY_MIN, 1.0)
-    base_font = getattr(args, "font", "") or pick_font()
+    opacity = _clamp_f(s.get("opacity", 1.0), OPACITY_MIN, 1.0)
+    base_font = str(s.get("font") or "").strip() or pick_font()
     m = re.search(r"^(.*?)\s+(\d+(?:\.\d+)?)$", base_font)
     family = m.group(1) if m else base_font
     size0 = float(m.group(2)) if m else 11.0
+    try:
+        scrollback = int(s.get("scrollback", SCROLLBACK))
+    except (TypeError, ValueError):
+        scrollback = SCROLLBACK
+    plugin_names = [str(p) for p in (s.get("plugins") or []) if str(p)]
 
     app = Gtk.Application(application_id=APP_ID,
                           flags=Gio.ApplicationFlags.NON_UNIQUE)
     tabs: list[dict] = []          # tab dicts: page/panes/label/title
     state = {"size": size0, "opacity": opacity, "win": None, "nb": None,
-             "subtitle": None, "revealer": None, "side_vte": None,
-             "side_spawned": False, "pane": None}
+             "subtitle": None, "subtitle_extra": None, "revealer": None,
+             "side_vte": None, "side_spawned": False, "pane": None,
+             "theme": theme, "tabs": tabs, "scrollback": scrollback}
 
     # ------------------------------------------------------------ fonts
     def font_desc():
@@ -174,7 +184,8 @@ def run(args) -> int:
     def tab_paint() -> None:
         for tab in tabs:
             for pane in tab["panes"]:
-                _paint_terminal(pane["term"], theme, state["opacity"])
+                _paint_terminal(pane["term"], state.get("theme", theme),
+                                state["opacity"])
 
     def fish_label(where: str) -> str:
         base = "fish" if (not args_shell or "fish" in args_shell) else args_shell
@@ -182,8 +193,12 @@ def run(args) -> int:
 
     def _make_pane(tab: dict, where: str) -> dict:
         term = Vte.Terminal()
-        _paint_terminal(term, theme, state["opacity"])
+        _paint_terminal(term, state.get("theme", theme), state["opacity"])
         term.set_font(font_desc())
+        try:
+            term.set_scrollback_lines(scrollback)
+        except Exception:
+            pass
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         scroll = Gtk.Scrollbar(orientation=Gtk.Orientation.VERTICAL,
                                adjustment=term.get_vadjustment())
@@ -425,7 +440,7 @@ def run(args) -> int:
     def shift_opacity(delta: float) -> bool:
         state["opacity"] = max(OPACITY_MIN, min(1.0, state["opacity"] + delta))
         tab_paint()
-        _apply_css(glass_css(theme, state["opacity"]))
+        _apply_css(glass_css(state.get("theme", theme), state["opacity"]))
         for pane in [p for tab in tabs for p in tab["panes"]]:
             try:
                 pane["term"].set_opacity(state["opacity"])
@@ -511,10 +526,17 @@ def run(args) -> int:
         hb = Gtk.HeaderBar()
         hb.set_show_close_button(True)
         hb.set_title("nlt-glass")
+        title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         subtitle = Gtk.Label(label=cwd)
         subtitle.get_style_context().add_class("subtitle")
-        hb.set_custom_title(subtitle)
+        subtitle.set_ellipsize(Pango.EllipsizeMode.END)
+        extra_status = Gtk.Label(label="")
+        extra_status.get_style_context().add_class("subtitle")
+        title_box.pack_start(subtitle, False, False, 0)
+        title_box.pack_start(extra_status, False, False, 0)
+        hb.set_custom_title(title_box)
         state["subtitle"] = subtitle
+        state["subtitle_extra"] = extra_status
 
         plus = Gtk.Button.new_from_icon_name("list-add-symbolic", Gtk.IconSize.MENU)
         plus.set_tooltip_text("new tab — ctrl+shift+t (inherits this tab's directory)")
@@ -556,7 +578,7 @@ def run(args) -> int:
         side_h.pack_start(side_vte, True, True, 0)
         side_h.pack_end(s_scroll, False, False, 0)
         side_vte.set_font(font_desc())
-        _paint_terminal(side_vte, theme, state["opacity"])
+        _paint_terminal(side_vte, state.get("theme", theme), state["opacity"])
         side_box.pack_start(hint, False, False, 0)
         side_box.pack_start(side_h, True, True, 0)
         revealer.add(side_box)
@@ -568,6 +590,9 @@ def run(args) -> int:
         win.connect("key-press-event", on_key)
         win.connect("destroy", lambda _w: app.quit())
         new_tab(cwd_arg=cwd)
+        ctx = bridge.GlassContext(win, hb, nb, state, s, app)
+        state["ctx"] = ctx
+        bridge.load_plugins(plugin_names, ctx)
         win.show_all()
 
     app.connect("activate", activate)

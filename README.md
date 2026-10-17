@@ -10,9 +10,9 @@ sidecar one keypress away.
 
 ## The look
 
-- Dark navy **Glass** chrome (or **Graphite** — `--theme graphite`), 12px
-  breathing room, pill tabs with accent underline, hairline scrollbar,
-  custom blue cursor.
+- Dark **Glass** chrome — quiet charcoal in kitty's spirit (or
+  **Graphite**, darker still) — 12px breathing room, pill tabs with an
+  accent underline, hairline scrollbar, custom pale cursor.
 - **Real transparency** — `--opacity 0.8` makes chrome *and* cells see
   through; pair with Hyprland/KWin blur for actual frosted glass.
   Adjust live with `Ctrl+Shift+[` / `Ctrl+Shift+]` (down to 15%).
@@ -44,6 +44,62 @@ sidecar one keypress away.
 | Ctrl+Shift+[ / ]       | less / more transparency                    |
 | Ctrl+Shift+ +/- / 0    | font bigger / smaller / reset               |
 
+## Settings
+
+Zero config by default; every knob lives in one optional JSON file.
+Precedence: **CLI flags > settings file > coded defaults**.
+
+```bash
+nlt-glass settings           # show the path + current values
+nlt-glass settings init      # write the defaults file (--force overwrites)
+nlt-glass settings edit      # open it in $EDITOR
+```
+
+`~/.config/nlt-glass/settings.json` (honors `XDG_CONFIG_HOME`):
+
+```json
+{
+  "theme": "glass",
+  "opacity": 0.88,
+  "font": "",
+  "shell": "",
+  "dir": "",
+  "no_nlt": false,
+  "plugins": ["clock", "cheats", "theme", "sysinfo"],
+  "scrollback": 10000
+}
+```
+
+- `opacity` — 0.15–1.0; with Hyprland/KWin blur you get real frosted glass
+- `font` / `shell` — empty strings mean auto-detect (JetBrainsMono/Iosevka…, fish)
+- `plugins` — which of the builtins run, disable any by removing it
+- broken JSON never bricks the terminal — defaults kick in
+
+## Plugins
+
+Inbuilt, small, honest — a plugin is any module with `register(ctx)`:
+
+| builtin   | what it does                                                |
+|-----------|-------------------------------------------------------------|
+| `clock`   | quiet HH:MM tick in the header status strip                 |
+| `sysinfo` | load-average badge (λ) next to the clock (Linux)            |
+| `theme`   | one click cycles glass ⇄ graphite **and saves the setting** |
+| `cheats`  | `⌨` button opens the keybindings cheat sheet                |
+
+Your own plugins go in `~/.config/nlt-glass/plugins/`:
+
+```python
+# ~/.config/nlt-glass/plugins/hello.py
+def register(ctx):
+    ctx.status("hello", "hi")        # shows in the header strip
+```
+
+Every `*.py` in that folder is auto-loaded; names in the `plugins` list can
+reference user files too (a user file shadows an inbuilt of the same name).
+Plugin surface: `ctx.window`, `ctx.headerbar`, `ctx.notebook`, `ctx.state`,
+`ctx.settings`, `ctx.app`, `ctx.retheme(name)`, `ctx.status(key, text)`.
+A broken plugin is skipped with a stderr note — the terminal never dies.
+
 nlt itself is **optional** — without it, nlt-glass is simply a beautiful
 transparent fish terminal.
 
@@ -61,13 +117,14 @@ python3 -m pip install --user .
 Run it:
 
 ```bash
-nlt-glass                              # solid glass theme, 100% opaque
-nlt-glass --opacity 0.8                # frosted — compositor blur makes it magic
-nlt-glass --theme graphite             # darker, calmer
-nlt-glass --dir ~/projects             # open somewhere specific
-nlt-glass --shell zsh                  # other shells keep working
+nlt-glass                        # reads ~/.config/nlt-glass/settings.json on start
+nlt-glass settings               # view knobs: theme, opacity, font, shell, plugins…
+nlt-glass --opacity 0.8          # flag overrides — frosted with compositor blur
+nlt-glass --theme graphite       # darker, calmer
+nlt-glass --dir ~/projects       # open somewhere specific
+nlt-glass --shell zsh            # other shells keep working
 nlt-glass --font "Iosevka 12"
-nlt-glass --no-nlt                     # pure terminal mode
+nlt-glass --no-nlt               # pure terminal mode
 ```
 
 For the full brain: `pipx install nlt` and `nlt fish install` — then
