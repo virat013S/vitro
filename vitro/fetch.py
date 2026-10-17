@@ -34,7 +34,7 @@ BLOCKS = [(220, 111, 120), (141, 207, 157), (226, 196, 130),
           (168, 199, 255), (233, 237, 246)]
 
 DEFAULTS = {"image": "", "cols": 36, "anim": True, "speed": 2.0,
-            "line_delay": 12}
+            "line_delay": 12, "intro": True, "caret": True}
 
 # Logos straight from fastfetch's collection (tokens $1/$2/$3 → brand colors).
 LOGOS = {
@@ -1010,9 +1010,75 @@ def compose(art: list[str], info: list[str], colors: str,
 
 
 # ------------------------------------------------------------- typing effect
+# ------------------------------------------------------- the flying bar
+# A thin track under a comet head sweeps once before the fetch (the intro),
+# and while the info types, a bright caret bar dashes ahead of the text
+# with a slash trail behind it, then vanishes. Every frame self-cleans, so
+# the finished transcript holds only the fetch — no residue anywhere.
+
+INTRO_CELL_MS = 4.0     # sweep speed, per track cell
+FLY_EVERY = 8           # type this many visible chars, then the caret flies
+FLY_CELLS = 4           # how far ahead of the text it dashes
+FLY_FRAME_MS = 6.0      # per frame of the dash
+
+BAR_HEAD = ("\x1b[1m\x1b[38;2;243;246;255m▊\x1b[0m")       # the flying caret
+BAR_SLASH = f"\x1b[38;2;{ACCENT[0]};{ACCENT[1]};{ACCENT[2]}m╱\x1b[0m"
+BAR_TRACK = f"\x1b[38;2;{DIM[0]};{DIM[1]};{DIM[2]}m─\x1b[0m"
+BAR_FILL = f"\x1b[38;2;{ACCENT[0]};{ACCENT[1]};{ACCENT[2]}m━\x1b[0m"
+BAR_COMET = "\x1b[1m\x1b[38;2;243;246;255m█\x1b[0m"
+
+
+def _term_cols() -> int:
+    try:
+        return shutil.get_terminal_size().columns
+    except Exception:
+        return 100
+
+
+def intro_bar(color: bool = True) -> None:
+    """A thin accent bar fills left→right under a comet; erases itself."""
+    if not color or not sys.stdout.isatty():
+        return
+    track = min(max(_term_cols() - 2, 18), 64)
+    try:
+        for k in range(track):
+            row = BAR_FILL * k + BAR_COMET + BAR_TRACK * (track - k - 1)
+            sys.stdout.write("\r\x1b[2K" + row)
+            sys.stdout.flush()
+            time.sleep(INTRO_CELL_MS / 1000.0)
+        time.sleep(0.05)
+        sys.stdout.write("\r\x1b[2K")
+        sys.stdout.flush()
+    except (BrokenPipeError, KeyboardInterrupt):
+        pass
+
+
+def _fly_dash() -> None:
+    """The caret shoots FLY_CELLS ahead of the typing, slash trail behind,
+    then everything disappears — cursor back exactly where typing stopped."""
+    try:
+        sys.stdout.write("\x1b[s")                      # anchor at text end
+        for k in range(1, FLY_CELLS + 1):
+            seq = "\x1b[u"
+            if k > 1:
+                seq += f"\x1b[{k - 1}C "                # old caret → gone
+            if k > 2:
+                seq += ("\x1b[u" + f"\x1b[{k - 2}C" + BAR_SLASH)
+            seq += ("\x1b[u" + f"\x1b[{k}C" + BAR_HEAD)
+            sys.stdout.write(seq)
+            sys.stdout.flush()
+            time.sleep(FLY_FRAME_MS / 1000.0)
+        sys.stdout.write("\x1b[u" + " " * FLY_CELLS
+                         + f"\x1b[{FLY_CELLS}D")        # vanish, take the trail
+        sys.stdout.flush()
+    except (BrokenPipeError, KeyboardInterrupt):
+        pass
+
+
 def stream(text: str, speed_ms: float = 2.0, color: bool = True,
-           art_rows: int = 0, line_ms: float = 12.0) -> None:
-    """The animation: the logo builds row by row, the info types itself.
+           art_rows: int = 0, line_ms: float = 12.0, caret: bool = True) -> None:
+    """The animation: the logo builds row by row, the info types itself —
+    and every FLY_EVERY chars the caret bar flies ahead with a slash trail.
     Escape runs jump instantly; visible chars tick at speed_ms."""
     lines = text.split("\n")
     if not color or not sys.stdout.isatty() or speed_ms <= 0:
@@ -1021,6 +1087,7 @@ def stream(text: str, speed_ms: float = 2.0, color: bool = True,
         return
     delay = max(0.2, speed_ms) / 1000.0
     line_wait = max(0.5, line_ms) / 1000.0
+    cols = _term_cols()
     try:
         for i, line in enumerate(lines):
             if i < art_rows:
@@ -1028,6 +1095,7 @@ def stream(text: str, speed_ms: float = 2.0, color: bool = True,
                 sys.stdout.flush()
                 time.sleep(line_wait)
             else:
+                n = 0
                 for part in ANSI_RE.split(line):
                     if not part:
                         continue
@@ -1036,8 +1104,12 @@ def stream(text: str, speed_ms: float = 2.0, color: bool = True,
                     else:
                         for ch in part:
                             sys.stdout.write(ch)
+                            if (caret and n > 2 and n % FLY_EVERY == 0
+                                    and len(line) < cols - 10):
+                                _fly_dash()
                             sys.stdout.flush()
                             time.sleep(delay)
+                            n += 1
                 if i < len(lines) - 1:
                     sys.stdout.write("\n")
                 sys.stdout.flush()
@@ -1089,12 +1161,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-anim", action="store_true", help="print instantly")
     p.add_argument("--cols", type=int, help="logo width in characters")
     p.add_argument("--speed", type=float, help="typing ms per char (default 2)")
+    p.add_argument("--no-intro", action="store_true", help="skip the flying bar")
     args = p.parse_args(flat)
 
     cfg = load_config()
     cols = int(args.cols or cfg.get("cols") or 36)
     speed = float(args.speed if args.speed is not None else cfg.get("speed", 2.0))
     animate = bool(cfg.get("anim", True)) and not args.no_anim
+    if args.no_intro:
+        cfg["intro"] = False
     color = not bool(os.environ.get("NO_COLOR"))
 
     art: list[str] | None = None
@@ -1113,8 +1188,11 @@ def main(argv: list[str] | None = None) -> int:
     text = compose(art, info_lines(rows, color, brand_color(os_id())),
                    colors_line(color), color)
     if animate:
+        if bool(cfg.get("intro", True)):
+            intro_bar(color)
         stream(text, speed, color, art_rows=len(art),
-               line_ms=float(cfg.get("line_delay", 12)))
+               line_ms=float(cfg.get("line_delay", 12)),
+               caret=bool(cfg.get("caret", True)))
     else:
         sys.stdout.write(text)
         sys.stdout.flush()

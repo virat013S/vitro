@@ -19,7 +19,30 @@ from vitro.spawn import shell_argv, sidecar_argv, uri_to_path, workdir_arg
 # -------------------------------------------------------------------- meta
 
 def test_meta():
-    assert __version__ == "1.7.0"
+    assert __version__ == "1.8.0"
+
+
+def test_fetch_flying_bar(monkeypatch):
+    import io
+    import shutil
+
+    from vitro import fetch
+    monkeypatch.setattr(shutil, "get_terminal_size",
+                       lambda: os.terminal_size((120, 24)))
+    fake = io.StringIO()
+    fake.isatty = lambda: True
+    monkeypatch.setattr(fetch.sys, "stdout", fake)
+    fetch.intro_bar(True)
+    fetch.stream("typed line\n", 0.2, True, 0, line_ms=1, caret=True)
+    sweep = fake.getvalue()
+    assert "\x1b[2K" in sweep and "█" in sweep      # the intro comet
+    assert "▊" in sweep and "\x1b[s" in sweep      # the caret flew ahead
+    assert "╱" in sweep                            # slash trail
+    fake2 = io.StringIO()
+    fake2.isatty = lambda: True
+    monkeypatch.setattr(fetch.sys, "stdout", fake2)
+    fetch.stream("quiet line\n", 0.2, True, 0, line_ms=1, caret=False)
+    assert "▊" not in fake2.getvalue()             # caret knob is honored
 
 
 def test_cli_command_flag():

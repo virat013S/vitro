@@ -43,6 +43,7 @@ Fastfetch, but ours — pure python, no deps, sub-second:
 ```bash
 ourfetch                    # the greeting (typing animation on a tty)
 ourfetch --no-anim          # instant, for scripts
+ourfetch --no-intro         # skip the flying bar
 ourfetch --cols 48          # wider logo
 ourfetch set-image cat.png  # your image becomes the logo (png; jpg via Pillow)
 ourfetch clear-image        # back to the automatic OS logo
@@ -55,6 +56,11 @@ openSUSE, Garuda, Artix, Kali, Alpine, Void, elementary, generic Linux,
 FreeBSD — plus **macOS and Windows**), colored in each distro's own brand
 tones; anything unknown gets vitro's own glass shard. Your image lives at
 `~/.config/vitro/image.png`, remembered in `fetch.json`.
+
+The showaround: `intro` sweeps a **flying bar** — one thin accent track
+under a comet head, erased when it lands — and `caret` sends a bright bar
+**dashing ahead of the typing with a slash trail**, vanishing without a
+trace. Knobs in `fetch.json`: `speed`, `line_delay`, `intro`, `caret`.
 
 ## Settings
 
