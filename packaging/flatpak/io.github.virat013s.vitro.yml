@@ -55,7 +55,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/virat013S/nlt.git
-        commit: d0a969d85dca920483893e8797f610da1ff9d7bf
+        commit: cdb1dc54cf5d8fb045cec859377e400a3e6cbac3
   - name: vitro
     buildsystem: simple
     build-commands:
