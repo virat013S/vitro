@@ -1,4 +1,4 @@
-"""nlt-glass — CLI front. Thin: parsing here, GTK lives behind glass.run()."""
+"""vitro — CLI front. Thin: parsing here, GTK lives behind glass.run()."""
 from __future__ import annotations
 
 import argparse
@@ -10,7 +10,7 @@ from . import APP, __version__
 def parse(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog=APP,
-        description="nlt-glass — the fish-first terminal window around the nlt brain.")
+        description="vitro — the fish-first terminal window around the nlt brain.")
     p.add_argument("--font", default="",
                    help="Pango font, e.g. 'JetBrainsMono Nerd Font 11' (auto-detected by default)")
     p.add_argument("--shell", default="",
@@ -30,7 +30,7 @@ def parse(argv: list[str] | None) -> argparse.Namespace:
 
 
 def settings_cmd(rest: list[str] | None) -> int:
-    """`nlt-glass settings` — show / init / edit the settings file."""
+    """`vitro settings` — show / init / edit the settings file."""
     import json
     import os
     import subprocess
@@ -42,7 +42,7 @@ def settings_cmd(rest: list[str] | None) -> int:
     if rest and rest[0] == "init":
         if os.path.exists(path) and "--force" not in rest:
             print(f"{APP}: {path} already exists — edit it, or use "
-                  f"'nlt-glass settings init --force'")
+                  f"'vitro settings init --force'")
             return 1
         if cfg.save(cfg.clean({})):
             print(f"{APP}: wrote {path}")
@@ -61,9 +61,9 @@ def settings_cmd(rest: list[str] | None) -> int:
     print(f"settings file: {path} "
           f"({'exists' if os.path.exists(path) else 'defaults below — file absent'})")
     print(json.dumps(current, indent=2, sort_keys=True))
-    print("\nedit the file, or run 'nlt-glass settings init --force' / 'nlt-glass settings edit'")
+    print("\nedit the file, or run 'vitro settings init --force' / 'vitro settings edit'")
     print("builtin plugins: clock, cheats, theme, sysinfo")
-    print("your plugins:    drop files in ~/.config/nlt-glass/plugins/ (def register(ctx))")
+    print("your plugins:    drop files in ~/.config/vitro/plugins/ (def register(ctx))")
     return 0
 
 

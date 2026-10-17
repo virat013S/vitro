@@ -1,4 +1,4 @@
-"""The Glass palette — colors + CSS for nlt-glass.
+"""The Glass palette — colors + CSS for vitro.
 
 Pure data: no GTK imports, so tests can read it anywhere. CSS is generated
 per-window-opacity so transparency reaches the chrome as well as the cells.

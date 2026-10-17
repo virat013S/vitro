@@ -1,7 +1,7 @@
 """Cheats plugin — a '⌨' button that opens the keybindings cheat sheet."""
 
 TEXT = """\
-nlt-glass keys
+vitro keys
 
   F1 / Ctrl+Shift+G     nlt sidecar hide/show
   Ctrl+Shift+T / W      new tab / close tab (new tab follows cwd)
@@ -13,8 +13,8 @@ nlt-glass keys
   Ctrl+Shift+[ / ]      less / more transparency
   Ctrl+Shift+ +/- / 0   font bigger / smaller / reset
 
-  settings: ~/.config/nlt-glass/settings.json   (nlt-glass settings)
-  plugins:  ~/.config/nlt-glass/plugins/*.py    (def register(ctx))
+  settings: ~/.config/vitro/settings.json   (vitro settings)
+  plugins:  ~/.config/vitro/plugins/*.py    (def register(ctx))
 """
 
 
@@ -28,7 +28,7 @@ def register(ctx) -> None:
 
     def open_sheet(_btn) -> None:
         win = Gtk.Window(transient_for=ctx.window)
-        win.set_title("nlt-glass keys")
+        win.set_title("vitro keys")
         win.set_default_size(460, 380)
         win.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)

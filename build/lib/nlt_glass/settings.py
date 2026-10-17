@@ -1,6 +1,6 @@
-"""nlt-glass settings — CLI flags win, then this file, then defaults.
+"""vitro settings — CLI flags win, then this file, then defaults.
 
-File lives at ~/.config/nlt-glass/settings.json (honors XDG_CONFIG_HOME).
+File lives at ~/.config/vitro/settings.json (honors XDG_CONFIG_HOME).
 Deliberately tiny and tolerant: broken JSON never crashes the terminal.
 """
 from __future__ import annotations
@@ -22,7 +22,7 @@ DEFAULTS = {
 
 def config_dir() -> str:
     base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
-    return os.path.join(base, "nlt-glass")
+    return os.path.join(base, "vitro")
 
 
 def config_path() -> str:
@@ -91,5 +91,5 @@ def merge_onto(argv_ns, settings: dict) -> dict:
 
 
 def example_text() -> str:
-    """Setup block a `nlt-glass settings init` writes into the file."""
+    """Setup block a `vitro settings init` writes into the file."""
     return json.dumps(DEFAULTS, indent=2, sort_keys=True) + "\n"

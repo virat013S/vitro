@@ -1,7 +1,7 @@
-"""nlt-glass plugins — tiny, inbuilt, user-extensible.
+"""vitro plugins — tiny, inbuilt, user-extensible.
 
 A plugin is any python module exposing `register(ctx)`. Inbuilt ones live
-in nlt_glass/plugins/; user ones in ~/.config/nlt-glass/plugins/*.py
+in vitro/plugins/; user ones in ~/.config/vitro/plugins/*.py
 (a user file with the same name as an inbuilt one wins). Names come from
 settings["plugins"], plus every user *.py is auto-loaded once. A broken
 plugin never crashes the terminal — it's skipped with a stderr note.
@@ -62,15 +62,15 @@ def _import_user(path: str):
         spec.loader.exec_module(mod)  # type: ignore[union-attr]
         return mod
     except Exception as err:  # noqa: BLE001 — plugins must fail soft
-        print(f"nlt-glass plugin '{name}': {err}", file=sys.stderr)
+        print(f"vitro plugin '{name}': {err}", file=sys.stderr)
         return None
 
 
 def _import_builtin(name: str):
     try:
-        return importlib.import_module(f"nlt_glass.plugins.{name}")
+        return importlib.import_module(f"vitro.plugins.{name}")
     except Exception as err:  # noqa: BLE001
-        print(f"nlt-glass plugin '{name}': {err}", file=sys.stderr)
+        print(f"vitro plugin '{name}': {err}", file=sys.stderr)
         return None
 
 
@@ -78,18 +78,18 @@ def _register(mod, label: str, ctx: GlassContext, live: list[str]) -> None:
     if mod is None:
         return
     if not hasattr(mod, "register"):
-        print(f"nlt-glass plugin '{label}': no register(ctx)", file=sys.stderr)
+        print(f"vitro plugin '{label}': no register(ctx)", file=sys.stderr)
         return
     try:
         mod.register(ctx)
         live.append(label)
     except Exception as err:  # noqa: BLE001
-        print(f"nlt-glass plugin '{label}' blew up: {err}", file=sys.stderr)
+        print(f"vitro plugin '{label}' blew up: {err}", file=sys.stderr)
 
 
 def user_plugin_dir() -> str:
     base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
-    return os.path.join(base, "nlt-glass", "plugins")
+    return os.path.join(base, "vitro", "plugins")
 
 
 def _user_files() -> list[str]:

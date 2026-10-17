@@ -119,7 +119,7 @@ def run(args) -> int:
         print(f"{APP}: GTK3/VTE bindings not importable — {LOAD_ERROR}")
         print("  linux:   sudo pacman -S gtk3 vte3 python-gobject")
         print("  macos:   brew install vte3 pygobject3 gtk+3")
-        print("  windows: nlt-glass lives on Linux — use WSL/WSLg")
+        print("  windows: vitro lives on Linux — use WSL/WSLg")
         return 77
 
     # precedence: CLI flags > settings.json > coded defaults
@@ -519,13 +519,13 @@ def run(args) -> int:
         _apply_css(glass_css(theme, opacity))
 
         win = Gtk.ApplicationWindow(application=app)
-        win.set_title("nlt-glass")
+        win.set_title("vitro")
         win.set_default_size(960, 620)
         state["win"] = win
 
         hb = Gtk.HeaderBar()
         hb.set_show_close_button(True)
-        hb.set_title("nlt-glass")
+        hb.set_title("vitro")
         title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         subtitle = Gtk.Label(label=cwd)
         subtitle.get_style_context().add_class("subtitle")

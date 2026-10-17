@@ -33,9 +33,12 @@ jobs:
           /usr/bin/python3 - <<'EOF'
           import sys
           sys.path.insert(0, ".")
-          from nlt_glass import glass
+          from vitro import glass
           assert glass.READY, f"bindings failed: {glass.LOAD_ERROR}"
-          from nlt_glass.palette import THEMES
+          from vitro.palette import THEMES
           assert len(THEMES["glass"]["normal"]) == 8
+          from vitro import fetch
+          rc = fetch.main(["--no-anim"])
+          assert rc == 0
           print("gtk smoke ok — glass READY:", glass.READY)
           EOF

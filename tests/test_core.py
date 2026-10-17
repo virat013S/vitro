@@ -1,4 +1,4 @@
-"""nlt-glass tests — pure logic only (no GTK imports, runs on any OS).
+"""vitro tests — pure logic only (no GTK imports, runs on any OS).
 
 The GUI path is exercised by the linux CI smoke job (xvfb + gir1.2-vte).
 """
@@ -10,18 +10,18 @@ import subprocess
 
 import pytest
 
-from nlt_glass import APP, APP_ID, __version__
-from nlt_glass import cli
-from nlt_glass.palette import pick_font, rgba_hex
-from nlt_glass.spawn import shell_argv, sidecar_argv, uri_to_path, workdir_arg
+from vitro import APP, APP_ID, __version__
+from vitro import cli
+from vitro.palette import pick_font, rgba_hex
+from vitro.spawn import shell_argv, sidecar_argv, uri_to_path, workdir_arg
 
 
 # -------------------------------------------------------------------- meta
 
 def test_meta():
-    assert __version__ == "1.2.0"
-    assert APP == "nlt-glass"
-    assert APP_ID.replace("io.github.virat013s.", "") == "nlt_glass"
+    assert __version__ == "1.3.0"
+    assert APP == "vitro"
+    assert APP_ID.replace("io.github.virat013s.", "") == "vitro"
 
 
 def test_parse_defaults():
@@ -52,7 +52,7 @@ def test_parse_opacity_and_theme():
 # ------------------------------------------------------------------ palette
 
 def test_themes_complete():
-    from nlt_glass.palette import (CHROME, THEMES, glass_css, hex_rgba_tuple,
+    from vitro.palette import (CHROME, THEMES, glass_css, hex_rgba_tuple,
                                    theme_names)
     assert theme_names() == ["glass", "graphite"]
     for name in theme_names():
@@ -72,7 +72,7 @@ def test_themes_complete():
 
 
 def test_hex_to_rgba_tuple():
-    from nlt_glass.palette import hex_rgba_tuple
+    from vitro.palette import hex_rgba_tuple
     assert hex_rgba_tuple("#12141C", 1.0) == "rgba(18, 20, 28, 1)"
     assert hex_rgba_tuple("#12141c", 0.7) == "rgba(18, 20, 28, 0.7)"
     assert hex_rgba_tuple("#abc", 0) == "rgba(170, 187, 204, 0)"
@@ -152,7 +152,7 @@ def test_workdir_arg():
 
 
 def test_settings_roundtrip(monkeypatch, tmp_path):
-    from nlt_glass import settings as cfg
+    from vitro import settings as cfg
 
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     s = cfg.load()
@@ -166,7 +166,7 @@ def test_settings_roundtrip(monkeypatch, tmp_path):
     assert cfg.load()["plugins"] == ["clock"]
 
     # broken file never wins / never wedges
-    (tmp_path / "nlt-glass" / "settings.json").write_text(
+    (tmp_path / "vitro" / "settings.json").write_text(
         "{ not json at all", encoding="utf-8")
     assert cfg.load() == dict(cfg.DEFAULTS)
 
@@ -174,7 +174,7 @@ def test_settings_roundtrip(monkeypatch, tmp_path):
 def test_settings_merge_precedence():
     from argparse import Namespace
 
-    from nlt_glass import settings as cfg
+    from vitro import settings as cfg
 
     ns = Namespace(font="", shell="zsh", dir="", theme=None,
                    opacity=None, no_nlt=False)
@@ -198,17 +198,17 @@ def test_builtin_plugins_importable():
     import importlib
 
     for name in ("clock", "cheats", "theme", "sysinfo"):
-        mod = importlib.import_module(f"nlt_glass.plugins.{name}")
+        mod = importlib.import_module(f"vitro.plugins.{name}")
         assert callable(mod.register)
 
 
 def test_plugin_loader_user_files_and_fails_soft(monkeypatch, capsys, tmp_path):
     from types import SimpleNamespace
 
-    from nlt_glass.bridge import GlassContext, load_plugins
+    from vitro.bridge import GlassContext, load_plugins
 
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    plugdir = tmp_path / "nlt-glass" / "plugins"
+    plugdir = tmp_path / "vitro" / "plugins"
     plugdir.mkdir(parents=True)
     (plugdir / "marker.py").write_text(
         "def register(ctx):\n"
@@ -235,7 +235,7 @@ def test_plugin_loader_user_files_and_fails_soft(monkeypatch, capsys, tmp_path):
 def test_context_status_slots():
     from types import SimpleNamespace
 
-    from nlt_glass.bridge import GlassContext
+    from vitro.bridge import GlassContext
 
     seen: dict = {}
 
@@ -253,9 +253,97 @@ def test_context_status_slots():
     assert seen["t"] == "λ 0.4"
 
 
+# ------------------------------------------------------------------ ourfetch
+
+def _tiny_png(w: int = 4, h: int = 4) -> bytes:
+    import struct
+    import zlib
+
+    raw = bytearray()
+    for y in range(h):
+        raw.append(0)                        # filter byte: none
+        for x in range(w):
+            raw += bytes((x * 60 % 256, y * 60 % 256, 128))
+
+    def chunk(tag: bytes, body: bytes) -> bytes:
+        return (struct.pack(">I", len(body)) + tag + body +
+                struct.pack(">I", zlib.crc32(tag + body) & 0xFFFFFFFF))
+
+    ihdr = struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)   # RGB, 8-bit
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) +
+            chunk(b"IDAT", zlib.compress(bytes(raw))) + chunk(b"IEND", b""))
+
+
+def test_fetch_png_decode_and_ansi(tmp_path):
+    from vitro import fetch
+    w, h, px = fetch._png_decode(_tiny_png(4, 4))
+    assert (w, h) == (4, 4) and len(px) == 16
+    assert px[0][3] == 255 and 0 <= px[0][0] <= 255
+    p = tmp_path / "t.png"
+    p.write_bytes(_tiny_png(6, 6))
+    art = fetch.image_to_ansi(str(p), 8)
+    assert len(art) >= 3 and all("38;2" in line for line in art)
+
+
+def test_fetch_logo_and_compose():
+    from vitro import fetch
+    for os_id in ("arch", "cachyos", "definitely-not-an-os"):
+        art = fetch.logo_for(os_id)
+        assert len(art) == 7 and all("\x1b[" in line for line in art)
+    info = fetch.info_lines([("os", "Test OS"), ("kernel", "6.9")], True)
+    assert len(info) == 2 and "Test OS" in info[0]
+    line = fetch.compose(art, info, fetch.colors_line(True), True)
+    assert line.count("\x1b[0m") >= 2 and line.endswith("\x1b[0m\n")
+
+
+def test_fetch_gather_shape():
+    from vitro import fetch
+    rows = fetch.gather()
+    assert rows and all(isinstance(r, tuple) and len(r) == 2 for r in rows)
+    labels = [r[0] for r in rows]
+    assert "os" in labels and "term" in labels
+
+
+def test_fetch_config_roundtrip(monkeypatch, tmp_path):
+    from vitro import fetch
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    cfg = fetch.load_config()
+    assert cfg == dict(fetch.DEFAULTS)
+    cfg["cols"] = 44
+    assert fetch.save_config(cfg)
+    assert fetch.load_config()["cols"] == 44
+    assert fetch.image_path() is None
+
+
+def test_fetch_set_image_command(monkeypatch, tmp_path):
+    from vitro import fetch
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    src = tmp_path / "logo.png"
+    src.write_bytes(_tiny_png(6, 6))
+    assert fetch.main(["set-image", str(src)]) == 0
+    assert fetch.load_config()["image"].endswith("image.png")
+    assert fetch.image_path() is not None and fetch.image_path().exists()
+    art = fetch.image_to_ansi(str(fetch.image_path()), 10)
+    assert len(art) >= 3
+    # junk path → error code 1
+    assert fetch.main(["set-image", str(tmp_path / "nope.png")]) == 1
+    # clear back
+    assert fetch.main(["clear-image"]) == 0
+    assert fetch.image_path() is None
+
+
+def test_fetch_stream_off_tty_is_instant(capsys):
+    from vitro import fetch
+    rc = fetch.main(["--no-anim"])
+    out = capsys.readouterr().out
+    assert rc == 0 and "os" in out and "\x1b[38;2;" in out
+
+
 def test_gui_module_is_import_safe():
     """glass.py must import everywhere (READY may be False off-linux)."""
-    from nlt_glass import glass
+    from vitro import glass
     assert glass.READY in (True, False)
     if not glass.READY:
         assert glass.LOAD_ERROR is not None
