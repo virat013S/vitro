@@ -2,7 +2,9 @@
 <component type="desktop-application">
   <id>io.github.virat013s.vitro</id>
   <name>Vitro</name>
-  <developer_name>virat013s</developer_name>
+  <developer id="io.github.virat013s">
+    <name>virat013s</name>
+  </developer>
   <summary>The glass terminal — fish-first, with the nlt brain a keypress away</summary>
   <description>
     <p>Vitro is a fish-first terminal made of dark glass: real terminal
