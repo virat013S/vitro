@@ -1,0 +1,50 @@
+id: io.github.virat013s.vitro
+runtime: org.gnome.Platform
+runtime-version: '48'
+sdk: org.gnome.Sdk
+command: vitro
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --filesystem=host
+  - --talk-name=org.freedesktop.Flatpak
+  - --env=GI_TYPELIB_PATH=/app/lib/girepository-1.0
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/gir-1.0
+  - /share/vala
+modules:
+  - name: vte
+    buildsystem: meson
+    config-opts:
+      - -Dgtk3=true
+      - -Dgtk4=false
+      - -Dvapi=false
+      - -Ddocs=false
+      - -Dgir=true
+    sources:
+      - type: archive
+        url: https://gitlab.gnome.org/GNOME/vte/-/archive/0.78.4/vte-0.78.4.tar.gz
+        sha256: cc6820090d160fbfb627da821954d4693ee4538b155a747a04021be536448e37
+  - name: vitro
+    buildsystem: simple
+    build-commands:
+      - pip3 install --no-deps --no-build-isolation --prefix=/app .
+      - install -Dm644 io.github.virat013s.vitro.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/io.github.virat013s.vitro.svg
+      - install -Dm644 io.github.virat013s.vitro.desktop ${FLATPAK_DEST}/share/applications/io.github.virat013s.vitro.desktop
+      - install -Dm644 io.github.virat013s.vitro.metainfo.xml ${FLATPAK_DEST}/share/metainfo/io.github.virat013s.vitro.metainfo.xml
+    sources:
+      - type: git
+        url: https://github.com/virat013S/vitro.git
+        tag: v1.8.0
+        commit: e9f685e4da10fb6d11c76469407ef186cd57eb7d
+      - type: file
+        path: io.github.virat013s.vitro.svg
+      - type: file
+        path: io.github.virat013s.vitro.desktop
+      - type: file
+        path: io.github.virat013s.vitro.metainfo.xml

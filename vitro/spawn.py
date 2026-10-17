@@ -5,9 +5,56 @@ import os
 import shutil
 
 
+def in_flatpak() -> bool:
+    """True when vitro itself runs inside a flatpak sandbox."""
+    return os.path.exists("/.flatpak-info") or bool(os.environ.get("FLATPAK_ID"))
+
+
+_host_shell: list[str] | None = None
+
+
+def host_shell_argv() -> list[str] | None:
+    """Inside a flatpak: your real host shell, via flatpak-spawn (cached).
+
+    The sandbox only carries the runtime's bash, so fish-first means spawning
+    the shell on the host — your fish config, PATH and integration load as
+    usual. Single cached probe (getent for $SHELL, which fish) keeps it
+    sub-second once.
+    """
+    global _host_shell
+    if _host_shell is not None:
+        return _host_shell
+    _host_shell = []
+    if not in_flatpak():
+        return _host_shell
+    import subprocess
+
+    def probe(argv: list[str]) -> str:
+        try:
+            r = subprocess.run(argv, capture_output=True, timeout=8, text=True)
+            return r.stdout.strip().splitlines()[0] if r.returncode == 0 and r.stdout else ""
+        except Exception:
+            return ""
+
+    # the user's real login shell on the host
+    login = probe(["flatpak-spawn", "--host", "getent", "passwd", str(os.getuid())])
+    if login and ":" in login:
+        argv0 = login.rstrip("\n").split(":")[-1]
+        if argv0:
+            _host_shell = (["flatpak-spawn", "--host", argv0]
+                           + (["--login"] if os.path.basename(argv0) == "fish" else []))
+    # fish-first: if the host has fish and it's not already the login shell,
+    # still run fish (its --login integration is what nlt's ctrl-g needs)
+    fish = probe(["flatpak-spawn", "--host", "which", "fish"])
+    if fish and (_host_shell == [] or "fish" not in _host_shell[-1]):
+        _host_shell = ["flatpak-spawn", "--host", fish, "--login"]
+    return _host_shell
+
+
 def shell_argv(shell: str = "") -> list[str]:
     """The shell every tab runs. fish is first-class (--login pulls your
-    fish integration, nlt's ctrl-g included); other shells still work."""
+    fish integration, nlt's ctrl-g included); other shells still work.
+    Inside a flatpak the tab runs your real host shell via flatpak-spawn."""
     if shell:
         found = shutil.which(shell)
         if not found:
@@ -16,6 +63,9 @@ def shell_argv(shell: str = "") -> list[str]:
         if os.path.basename(found) == "fish":
             argv.append("--login")
         return argv
+    argv = host_shell_argv()
+    if argv:
+        return list(argv)
     fish = shutil.which("fish")
     if fish:
         return [fish, "--login"]
@@ -33,7 +83,20 @@ def shell_argv(shell: str = "") -> list[str]:
 def sidecar_argv() -> list[str] | None:
     """`nlt chat` for the sidecar, or None when nlt isn't installed."""
     bin_ = shutil.which("nlt")
-    return [bin_, "chat"] if bin_ else None
+    if bin_:
+        return [bin_, "chat"]
+    if in_flatpak():
+        # host nlt via the sandbox portal (cached probe)
+        import subprocess
+
+        try:
+            r = subprocess.run(["flatpak-spawn", "--host", "which", "nlt"],
+                               capture_output=True, timeout=8, text=True)
+            if r.returncode == 0 and r.stdout.strip():
+                return ["flatpak-spawn", "--host", "nlt", "chat"]
+        except Exception:
+            pass
+    return None
 
 
 def workdir_arg(dir_arg: str) -> str:
