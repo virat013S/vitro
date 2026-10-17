@@ -35,7 +35,7 @@ jobs:
           sys.path.insert(0, ".")
           from nlt_glass import glass
           assert glass.READY, f"bindings failed: {glass.LOAD_ERROR}"
-          from nlt_glass.palette import GLASS
-          assert len(GLASS["normal"]) == 8
+          from nlt_glass.palette import THEMES
+          assert len(THEMES["glass"]["normal"]) == 8
           print("gtk smoke ok — glass READY:", glass.READY)
           EOF
