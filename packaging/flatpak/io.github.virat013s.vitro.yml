@@ -34,9 +34,6 @@ modules:
       - --with-shared
       - --without-ada
       - --enable-widec
-      - --disable-database
-      - --with-terminfo-dirs=/usr/share/terminfo
-      - --disable-rpath-hack
     sources:
       - type: archive
         url: https://ftp.gnu.org/gnu/ncurses/ncurses-6.5.tar.gz
