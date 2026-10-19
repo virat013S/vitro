@@ -1,0 +1,17 @@
+--- a/cmake/Tests.cmake
++++ b/cmake/Tests.cmake
+@@ -1,3 +1,3 @@
+ # This adds ctest support to the project
+-enable_testing()
++# enable_testing()  # disabled for Flathub build (CMake 3.28 reserves "test" target)
+ 
+ # By default, ctest runs tests serially
+@@ -46,7 +46,7 @@
+ # If CMP0037 is available, also make an alias "test" target.
+ # Note that this policy may not be available, in which case definining such a target silently fails.
+ cmake_policy(PUSH)
+-if(POLICY CMP0037)
++if(FALSE)
+   cmake_policy(SET CMP0037 OLD)
+   add_custom_target(test DEPENDS fish_run_tests)
+ endif()
