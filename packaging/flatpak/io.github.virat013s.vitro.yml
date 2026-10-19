@@ -50,6 +50,8 @@ modules:
       - type: archive
         url: https://github.com/fish-shell/fish-shell/releases/download/3.7.1/fish-3.7.1.tar.xz
         sha256: 614c9f5643cd0799df391395fa6bbc3649427bb839722ce3b114d3bbc1a3b250
+      - type: patch
+        path: fix-fish-cmake-tests.patch
   - name: nlt
     buildsystem: simple
     build-commands:
@@ -70,6 +72,7 @@ modules:
       - type: git
         url: https://github.com/virat013S/vitro.git
         tag: v1.9.0
+        commit: 33303c8b4a504da9e0f063117a9ff58d040a94de
       - type: file
         path: io.github.virat013s.vitro.svg
       - type: file
