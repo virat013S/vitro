@@ -32,6 +32,8 @@ modules:
     config-opts:
       - --with-shared
       - --without-ada
+      - --without-cxx
+      - --without-cxx-binding
       - --enable-widec
     sources:
       - type: archive
