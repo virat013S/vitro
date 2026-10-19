@@ -45,20 +45,7 @@ def shell_argv(shell: str = "") -> list[str]:
 def sidecar_argv() -> list[str] | None:
     """`nlt chat` for the sidecar, or None when nlt isn't installed."""
     bin_ = shutil.which("nlt")
-    if bin_:
-        return [bin_, "chat"]
-    if in_flatpak():
-        # host nlt via the sandbox portal (cached probe)
-        import subprocess
-
-        try:
-            r = subprocess.run(["flatpak-spawn", "--host", "which", "nlt"],
-                               capture_output=True, timeout=8, text=True)
-            if r.returncode == 0 and r.stdout.strip():
-                return ["flatpak-spawn", "--host", "nlt", "chat"]
-        except Exception:
-            pass
-    return None
+    return [bin_, "chat"] if bin_ else None
 
 
 def workdir_arg(dir_arg: str) -> str:
