@@ -45,6 +45,7 @@ modules:
       - -DCMAKE_BUILD_TYPE=Release
       - -DWITH_GETTEXT=NO
       - -DBUILD_DOCS=NO
+      - -DBUILD_TESTS=NO
     sources:
       - type: archive
         url: https://github.com/fish-shell/fish-shell/releases/download/3.7.1/fish-3.7.1.tar.xz
