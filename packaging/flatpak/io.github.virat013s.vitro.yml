@@ -67,7 +67,6 @@ modules:
       - type: git
         url: https://github.com/virat013S/vitro.git
         tag: v1.9.0
-        commit: 1597c1693119ea69f1c035d17a7418867ee035b0
       - type: file
         path: io.github.virat013s.vitro.svg
       - type: file
