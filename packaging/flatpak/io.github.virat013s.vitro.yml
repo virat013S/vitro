@@ -1,6 +1,6 @@
 id: io.github.virat013s.vitro
 runtime: org.gnome.Platform
-runtime-version: '50'
+runtime-version: '51'
 sdk: org.gnome.Sdk
 command: vitro
 finish-args:
@@ -64,18 +64,11 @@ modules:
     buildsystem: simple
     build-commands:
       - pip3 install --no-deps --no-build-isolation --prefix=/app .
-      - install -Dm644 LICENSE -t ${FLATPAK_DEST}/share/licenses/${FLATPAK_ID}/vitro
-      - install -Dm644 io.github.virat013s.vitro.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/io.github.virat013s.vitro.svg
-      - install -Dm644 io.github.virat013s.vitro.desktop ${FLATPAK_DEST}/share/applications/io.github.virat013s.vitro.desktop
-      - install -Dm644 io.github.virat013s.vitro.metainfo.xml ${FLATPAK_DEST}/share/metainfo/io.github.virat013s.vitro.metainfo.xml
+      - install -Dm644 packaging/flatpak/${FLATPAK_ID}.svg -t ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/
+      - install -Dm644 packaging/flatpak/${FLATPAK_ID}.desktop -t ${FLATPAK_DEST}/share/applications/
+      - install -Dm644 packaging/flatpak/${FLATPAK_ID}.metainfo.xml -t ${FLATPAK_DEST}/share/metainfo/
     sources:
       - type: git
         url: https://github.com/virat013S/vitro.git
         tag: v1.9.0
         commit: 33303c8b4a504da9e0f063117a9ff58d040a94de
-      - type: file
-        path: io.github.virat013s.vitro.svg
-      - type: file
-        path: io.github.virat013s.vitro.desktop
-      - type: file
-        path: io.github.virat013s.vitro.metainfo.xml
